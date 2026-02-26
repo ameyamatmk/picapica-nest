@@ -8,7 +8,10 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"time"
 
+	"github.com/ameyamatmk/picapica-nest/internal/logging"
+	isession "github.com/ameyamatmk/picapica-nest/internal/session"
 	"github.com/sipeed/picoclaw/pkg/agent"
 	"github.com/sipeed/picoclaw/pkg/bus"
 	"github.com/sipeed/picoclaw/pkg/channels"
@@ -42,14 +45,22 @@ func run() error {
 		cfg.Agents.Defaults.ModelName = modelID
 	}
 
-	// 3. Message Bus 作成
-	msgBus := bus.NewMessageBus()
+	// 3. Message Bus 作成（Dual Bus + Bridge パターン）
+	// channelBus: Channel 側（Channel が PublishInbound / SubscribeOutbound する先）
+	// agentBus:   AgentLoop 側（AgentLoop が ConsumeInbound / PublishOutbound する先）
+	// ConversationLogger が両者をブリッジし、通過するメッセージをログに記録する
+	channelBus := bus.NewMessageBus()
+	agentBus := bus.NewMessageBus()
 
-	// 4. Agent Loop 作成
-	agentLoop := agent.NewAgentLoop(cfg, msgBus, provider)
+	// 4. ConversationLogger 作成（channelBus ↔ agentBus のブリッジ）
+	logBasePath := filepath.Join(cfg.WorkspacePath(), "logs")
+	convLogger := logging.NewConversationLogger(logBasePath, channelBus, agentBus)
 
-	// 5. Channel Manager 作成
-	channelManager, err := channels.NewManager(cfg, msgBus)
+	// 5. Agent Loop 作成（agentBus を使用）
+	agentLoop := agent.NewAgentLoop(cfg, agentBus, provider)
+
+	// 6. Channel Manager 作成（channelBus を使用）
+	channelManager, err := channels.NewManager(cfg, channelBus)
 	if err != nil {
 		return fmt.Errorf("channel manager creation error: %w", err)
 	}
@@ -62,7 +73,7 @@ func run() error {
 		fmt.Println("Warning: No channels enabled")
 	}
 
-	// 6. Health server 起動
+	// 7. Health server 起動
 	healthServer := health.NewServer(cfg.Gateway.Host, cfg.Gateway.Port)
 
 	fmt.Printf("Gateway starting on %s:%d\n", cfg.Gateway.Host, cfg.Gateway.Port)
@@ -70,7 +81,10 @@ func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// 7. 全チャンネル起動
+	// ConversationLogger のブリッジを起動（channelBus ↔ agentBus）
+	convLogger.Run(ctx)
+
+	// 8. 全チャンネル起動
 	if err := channelManager.StartAll(ctx); err != nil {
 		fmt.Printf("Error starting channels: %v\n", err)
 	}
@@ -85,9 +99,16 @@ func run() error {
 	// Agent Loop をバックグラウンドで起動
 	go agentLoop.Run(ctx)
 
+	// IdleMonitor を起動（セッション idle timeout: 30分、チェック間隔: 1分）
+	sessionsDirs := isession.SessionsDirsFromConfig(cfg)
+	idleTimeout := 30 * time.Minute
+	idleMonitor := isession.NewIdleMonitor(sessionsDirs, idleTimeout, 1*time.Minute)
+	idleMonitor.Start(ctx)
+	fmt.Printf("IdleMonitor started (timeout=%v, dirs=%v)\n", idleTimeout, sessionsDirs)
+
 	fmt.Println("picapica-nest started. Press Ctrl+C to stop.")
 
-	// 8. シグナルハンドリング + graceful shutdown
+	// 9. シグナルハンドリング + graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	<-sigChan
@@ -97,6 +118,7 @@ func run() error {
 		cp.Close()
 	}
 	cancel()
+	idleMonitor.Stop()
 	healthServer.Stop(context.Background())
 	agentLoop.Stop()
 	channelManager.StopAll(ctx)
