@@ -27,6 +27,9 @@ usage.jsonl
 .DS_Store
 Thumbs.db
 
+# Research notes (not tracked)
+docs/_research/
+
 # Environment
 .env
 .env.local

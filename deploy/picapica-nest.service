@@ -1,0 +1,36 @@
+[Unit]
+Description=PicaPica Nest - Personal AI Agent (Discord Gateway)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=picapica
+Group=picapica
+
+ExecStart=/home/picapica/bin/picapica-nest
+WorkingDirectory=/home/picapica
+
+Restart=on-failure
+RestartSec=5
+
+# ログ
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=picapica-nest
+
+# セキュリティ
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindPaths=/home/picapica
+PrivateTmp=yes
+
+# 環境変数（必要に応じて override ファイルで設定）
+# Environment=ANTHROPIC_API_KEY=sk-ant-...
+Environment="PATH=/home/picapica/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+[Install]
+WantedBy=multi-user.target
