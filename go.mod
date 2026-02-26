@@ -2,7 +2,7 @@ module github.com/ameyamatmk/picapica-nest
 
 go 1.25.7
 
-require github.com/sipeed/picoclaw v0.0.0
+require github.com/sipeed/picoclaw v0.1.2
 
 require (
 	github.com/adhocore/gronx v1.19.6 // indirect
@@ -44,5 +44,3 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 )
-
-replace github.com/sipeed/picoclaw => ../picoclaw

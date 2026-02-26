@@ -35,14 +35,9 @@ func run() error {
 	}
 
 	// 2. Provider 作成
-	provider, modelID, err := providers.CreateProvider(cfg)
+	provider, err := providers.CreateProvider(cfg)
 	if err != nil {
 		return fmt.Errorf("provider creation error: %w", err)
-	}
-
-	// 解決済みの model ID を反映
-	if modelID != "" {
-		cfg.Agents.Defaults.ModelName = modelID
 	}
 
 	// 3. Message Bus 作成（Dual Bus + Bridge パターン）
@@ -114,9 +109,6 @@ func run() error {
 	<-sigChan
 
 	fmt.Println("\nShutting down...")
-	if cp, ok := provider.(providers.StatefulProvider); ok {
-		cp.Close()
-	}
 	cancel()
 	idleMonitor.Stop()
 	healthServer.Stop(context.Background())

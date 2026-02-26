@@ -11,19 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Checkout PicoClaw
-        uses: actions/checkout@v4
-        with:
-          repository: sipeed/picoclaw
-          path: picoclaw
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-
-      - name: Adjust replace directive for CI
-        run: go mod edit -replace github.com/sipeed/picoclaw=./picoclaw
 
       - name: Build
         run: make build-all

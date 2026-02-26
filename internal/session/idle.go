@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -160,72 +159,13 @@ func (m *IdleMonitor) clearSession(dir, key string) {
 	fmt.Printf("IdleMonitor: session %q cleared successfully\n", key)
 }
 
-// SessionsDirsFromConfig は config から全 Agent の sessions ディレクトリパスを計算する。
-// PicoClaw の resolveAgentWorkspace ロジックを再現して workspace を解決し、
-// その中の sessions/ サブディレクトリのパスを返す。
+// SessionsDirsFromConfig は config から sessions ディレクトリパスを返す。
 func SessionsDirsFromConfig(cfg *config.Config) []string {
-	seen := make(map[string]struct{})
-	var dirs []string
-
-	addDir := func(workspace string) {
-		dir := filepath.Join(workspace, "sessions")
-		if _, ok := seen[dir]; !ok {
-			seen[dir] = struct{}{}
-			dirs = append(dirs, dir)
-		}
-	}
-
-	defaults := &cfg.Agents.Defaults
-
-	if len(cfg.Agents.List) == 0 {
-		// 暗黙の main agent: defaults.Workspace を使用
-		ws := expandHome(defaults.Workspace)
-		addDir(ws)
-	} else {
-		for i := range cfg.Agents.List {
-			ac := &cfg.Agents.List[i]
-			ws := resolveWorkspace(ac, defaults)
-			addDir(ws)
-		}
-	}
-
-	return dirs
+	ws := cfg.WorkspacePath()
+	return []string{filepath.Join(ws, "sessions")}
 }
 
 // resolveWorkspace は PicoClaw の resolveAgentWorkspace と同じロジックで
-// Agent の workspace パスを解決する。
-func resolveWorkspace(ac *config.AgentConfig, defaults *config.AgentDefaults) string {
-	if ac != nil && strings.TrimSpace(ac.Workspace) != "" {
-		return expandHome(strings.TrimSpace(ac.Workspace))
-	}
-	if ac == nil || ac.Default || ac.ID == "" || normalizeAgentID(ac.ID) == "main" {
-		return expandHome(defaults.Workspace)
-	}
-	home, _ := os.UserHomeDir()
-	id := normalizeAgentID(ac.ID)
-	return filepath.Join(home, ".picoclaw", "workspace-"+id)
-}
-
-// normalizeAgentID は agent ID を正規化する（小文字化、トリム）。
-func normalizeAgentID(id string) string {
-	return strings.ToLower(strings.TrimSpace(id))
-}
-
-// expandHome はパス先頭の ~ をホームディレクトリに展開する。
-func expandHome(path string) string {
-	if path == "" {
-		return path
-	}
-	if path[0] == '~' {
-		home, _ := os.UserHomeDir()
-		if len(path) > 1 && path[1] == '/' {
-			return home + path[1:]
-		}
-		return home
-	}
-	return path
-}
-
 // readSessionFile は JSON ファイルからセッション情報を読み取る。
 func readSessionFile(path string) (*sessionFile, error) {
 	data, err := os.ReadFile(path)
