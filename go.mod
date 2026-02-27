@@ -4,6 +4,8 @@ go 1.25.7
 
 require github.com/sipeed/picoclaw v0.1.2
 
+replace github.com/sipeed/picoclaw => github.com/ameyamatmk/picoclaw-nest v0.1.2-nest.1
+
 require (
 	github.com/adhocore/gronx v1.19.6 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect

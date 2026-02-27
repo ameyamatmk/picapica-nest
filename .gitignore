@@ -1,5 +1,6 @@
 # Go
 /picapica-nest
+build/
 *.exe
 *.exe~
 *.dll
