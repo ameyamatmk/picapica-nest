@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ameyamatmk/picapica-nest/internal/logging"
+	"github.com/ameyamatmk/picapica-nest/internal/provider"
 	isession "github.com/ameyamatmk/picapica-nest/internal/session"
 	"github.com/sipeed/picoclaw/pkg/agent"
 	"github.com/sipeed/picoclaw/pkg/bus"
@@ -34,11 +35,15 @@ func run() error {
 		return fmt.Errorf("config load error: %w", err)
 	}
 
-	// 2. Provider 作成
-	provider, err := providers.CreateProvider(cfg)
+	// 2. Provider 作成（Decorator chain: PromptRewrite → Logging → Inner）
+	inner, err := providers.CreateProvider(cfg)
 	if err != nil {
 		return fmt.Errorf("provider creation error: %w", err)
 	}
+	usageLogPath := filepath.Join(cfg.WorkspacePath(), "usage.jsonl")
+	loggingProvider := provider.NewLoggingProvider(inner, usageLogPath)
+	llmProvider := provider.NewPromptRewriteProvider(loggingProvider)
+	fmt.Printf("Provider chain: PromptRewrite → Logging(%s) → %T\n", usageLogPath, inner)
 
 	// 3. Message Bus 作成（Dual Bus + Bridge パターン）
 	// channelBus: Channel 側（Channel が PublishInbound / SubscribeOutbound する先）
@@ -52,7 +57,7 @@ func run() error {
 	convLogger := logging.NewConversationLogger(logBasePath, channelBus, agentBus)
 
 	// 5. Agent Loop 作成（agentBus を使用）
-	agentLoop := agent.NewAgentLoop(cfg, agentBus, provider)
+	agentLoop := agent.NewAgentLoop(cfg, agentBus, llmProvider)
 
 	// 6. Channel Manager 作成（channelBus を使用）
 	channelManager, err := channels.NewManager(cfg, channelBus)
