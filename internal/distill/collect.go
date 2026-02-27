@@ -39,10 +39,12 @@ func weekEndFri(year, week int) time.Time {
 }
 
 // weekFileName は週次レポートのファイル名を返す。
-// 形式: YYYY-MM-WNN.md（月は週の開始日=土曜日の月）
+// 形式: YYYY-MM-WNN.md（月は週の終了日=金曜日の月）。
+// 金曜の月を使うことで、月次レポート作成時に作成済みの週次レポートのみが
+// 当月のファイル名パターンにマッチする。
 func weekFileName(year, week int) string {
-	start := weekStartSat(year, week)
-	return fmt.Sprintf("%d-%02d-W%02d.md", year, int(start.Month()), week)
+	end := weekEndFri(year, week)
+	return fmt.Sprintf("%d-%02d-W%02d.md", year, int(end.Month()), week)
 }
 
 // readReportFile は Markdown レポートファイルを読み込む。

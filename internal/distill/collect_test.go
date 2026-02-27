@@ -136,16 +136,16 @@ func TestWeekStartEndSat_Consistency(t *testing.T) {
 }
 
 func TestWeekFileName(t *testing.T) {
-	// Given: 2026-W09（土曜 = 2/21 → 2月）
+	// Given: 2026-W09（金曜 = 2/27 → 2月）
 	got := weekFileName(2026, 9)
 	expected := "2026-02-W09.md"
 	if got != expected {
 		t.Errorf("expected %q, got %q", expected, got)
 	}
 
-	// W10 の土曜 = 2/28 → 2月
+	// W10 の金曜 = 3/6 → 3月
 	got = weekFileName(2026, 10)
-	expected = "2026-02-W10.md"
+	expected = "2026-03-W10.md"
 	if got != expected {
 		t.Errorf("expected %q, got %q", expected, got)
 	}
