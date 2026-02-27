@@ -28,7 +28,7 @@ func configPath() string {
 	return filepath.Join(home, ".picapica-nest", "config.json")
 }
 
-func run() error {
+func cmdServe() error {
 	// 1. Config ロード
 	cfg, err := config.LoadConfig(configPath())
 	if err != nil {
@@ -125,7 +125,24 @@ func run() error {
 }
 
 func main() {
-	if err := run(); err != nil {
+	var err error
+
+	if len(os.Args) < 2 {
+		// 引数なし → serve（後方互換）
+		err = cmdServe()
+	} else {
+		switch os.Args[1] {
+		case "serve":
+			err = cmdServe()
+		case "distill":
+			err = cmdDistill(os.Args[2:])
+		default:
+			fmt.Fprintf(os.Stderr, "Unknown command: %s\nUsage: picapica-nest [serve|distill]\n", os.Args[1])
+			os.Exit(1)
+		}
+	}
+
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
