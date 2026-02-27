@@ -64,7 +64,7 @@ func cmdDistillDaily(args []string) error {
 
 func cmdDistillWeekly(args []string) error {
 	fs := flag.NewFlagSet("distill weekly", flag.ExitOnError)
-	weekStr := fs.String("week", "", "対象週 (YYYY-WNN)。未指定時は前週")
+	weekStr := fs.String("week", "", "対象週 (YYYY-WNN)。未指定時は前週（前の土曜〜金曜）")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -76,9 +76,15 @@ func cmdDistillWeekly(args []string) error {
 
 	var year, week int
 	if *weekStr == "" {
-		// 前週: 今日の7日前の ISO 週
-		prevWeek := time.Now().AddDate(0, 0, -7)
-		year, week = prevWeek.ISOWeek()
+		// 前週: 直近の金曜日が属する ISO 週
+		now := time.Now()
+		// 直近の金曜日を見つける（土曜朝に実行される想定）
+		daysBack := int(now.Weekday()-time.Friday+7) % 7
+		if daysBack == 0 {
+			daysBack = 7 // 金曜日当日なら前週の金曜
+		}
+		lastFriday := now.AddDate(0, 0, -daysBack)
+		year, week = lastFriday.ISOWeek()
 	} else {
 		_, err := fmt.Sscanf(*weekStr, "%d-W%d", &year, &week)
 		if err != nil {

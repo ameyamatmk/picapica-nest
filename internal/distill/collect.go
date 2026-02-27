@@ -27,6 +27,24 @@ func isoWeekEnd(year, week int) time.Time {
 	return isoWeekStart(year, week).AddDate(0, 0, 6)
 }
 
+// weekStartSat は ISO 週番号に対応する週の土曜日（開始日）を返す。
+// 週の定義: 土曜日〜金曜日。ISO 週 N の金曜日を含む週の土曜日開始。
+func weekStartSat(year, week int) time.Time {
+	return isoWeekStart(year, week).AddDate(0, 0, -2)
+}
+
+// weekEndFri は ISO 週番号に対応する週の金曜日（終了日）を返す。
+func weekEndFri(year, week int) time.Time {
+	return isoWeekStart(year, week).AddDate(0, 0, 4)
+}
+
+// weekFileName は週次レポートのファイル名を返す。
+// 形式: YYYY-MM-WNN.md（月は週の開始日=土曜日の月）
+func weekFileName(year, week int) string {
+	start := weekStartSat(year, week)
+	return fmt.Sprintf("%d-%02d-W%02d.md", year, int(start.Month()), week)
+}
+
 // readReportFile は Markdown レポートファイルを読み込む。
 // ファイルが存在しない場合は ("", nil) を返す。
 func readReportFile(path string) (string, error) {

@@ -88,7 +88,7 @@ func RunMonthlyWith(ctx context.Context, params MonthlyParams, distill Distiller
 }
 
 // weeksInMonth は指定月に属する ISO 週を返す。
-// 「月曜日が当月内にある週」を対象とする。
+// 「土曜日（週の開始日）が当月内にある週」を対象とする。
 func weeksInMonth(year, month int) []isoWeek {
 	m := time.Month(month)
 	firstDay := time.Date(year, m, 1, 0, 0, 0, 0, time.UTC)
@@ -98,11 +98,14 @@ func weeksInMonth(year, month int) []isoWeek {
 	var weeks []isoWeek
 
 	for d := firstDay; !d.After(lastDay); d = d.AddDate(0, 0, 1) {
-		// 月曜日のみチェック
-		if d.Weekday() != time.Monday {
+		// 土曜日（週の開始日）のみチェック
+		if d.Weekday() != time.Saturday {
 			continue
 		}
-		isoY, isoW := d.ISOWeek()
+		// この土曜日を含む週の ISO 週番号を取得
+		// 土曜日+2日 = 月曜日 の ISOWeek を使う
+		monday := d.AddDate(0, 0, 2)
+		isoY, isoW := monday.ISOWeek()
 		w := isoWeek{Year: isoY, Week: isoW}
 		if !seen[w] {
 			seen[w] = true
@@ -119,7 +122,7 @@ func collectWeeklyReports(weeklyDir string, weeks []isoWeek) (string, int, error
 	count := 0
 
 	for _, w := range weeks {
-		fileName := fmt.Sprintf("%d-W%02d.md", w.Year, w.Week)
+		fileName := weekFileName(w.Year, w.Week)
 		path := filepath.Join(weeklyDir, fileName)
 
 		content, err := readReportFile(path)
@@ -134,9 +137,9 @@ func collectWeeklyReports(weeklyDir string, weeks []isoWeek) (string, int, error
 			sb.WriteString("\n\n")
 		}
 
-		// 見出し: "## 第9週 (2/23〜3/1)"
-		start := isoWeekStart(w.Year, w.Week)
-		end := isoWeekEnd(w.Year, w.Week)
+		// 見出し: "## 第9週 (2/21〜2/27)"
+		start := weekStartSat(w.Year, w.Week)
+		end := weekEndFri(w.Year, w.Week)
 		header := fmt.Sprintf("## 第%d週 (%d/%d〜%d/%d)",
 			w.Week, start.Month(), start.Day(), end.Month(), end.Day())
 		sb.WriteString(header)

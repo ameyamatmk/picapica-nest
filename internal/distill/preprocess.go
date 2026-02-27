@@ -16,6 +16,10 @@ import (
 // アシスタント側の表示名
 const assistantName = "picapica"
 
+// dayBoundaryHour は日次ログの境界時刻（JST）。
+// 午前4時で日をまたぐ（深夜〜4時の活動は前日扱い）。
+const dayBoundaryHour = 4
+
 // jst はタイムスタンプ表示用のタイムゾーン。
 var jst *time.Location
 
@@ -28,13 +32,21 @@ func init() {
 }
 
 // CollectLogs は指定日のログを全チャンネルから収集する。
-// logsDir 配下のサブディレクトリを走査し、{YYYY-MM-DD}.jsonl を読み込む。
-// エントリはタイムスタンプ順にソートされずそのまま返す（JSONL は時系列順に書き込まれるため）。
+// logsDir 配下のサブディレクトリを走査し、JSONL ファイルを読み込む。
+// 日の境界は午前4時 JST（date の 04:00 〜 date+1 の 04:00）。
+// 深夜〜午前4時のログは前日分として扱われる。
 func CollectLogs(logsDir string, date time.Time) ([]logging.LogEntry, error) {
-	dateStr := date.Format("2006-01-02")
-	fileName := dateStr + ".jsonl"
+	// date の 04:00 JST ～ date+1 の 04:00 JST が対象範囲
+	dayStart := time.Date(date.Year(), date.Month(), date.Day(), dayBoundaryHour, 0, 0, 0, jst)
+	dayEnd := dayStart.AddDate(0, 0, 1)
 
-	entries, err := os.ReadDir(logsDir)
+	// カレンダー日ベースの2つのファイルを読む（4時境界をまたぐため）
+	fileNames := []string{
+		date.Format("2006-01-02") + ".jsonl",
+		date.AddDate(0, 0, 1).Format("2006-01-02") + ".jsonl",
+	}
+
+	dirEntries, err := os.ReadDir(logsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -43,24 +55,44 @@ func CollectLogs(logsDir string, date time.Time) ([]logging.LogEntry, error) {
 	}
 
 	var allEntries []logging.LogEntry
-	for _, entry := range entries {
-		if !entry.IsDir() {
+	for _, dirEntry := range dirEntries {
+		if !dirEntry.IsDir() {
 			continue
 		}
-		filePath := filepath.Join(logsDir, entry.Name(), fileName)
-		logEntries, err := readJSONL(filePath)
-		if err != nil {
-			// ファイルが存在しない場合はスキップ
-			if os.IsNotExist(err) {
+		for _, fileName := range fileNames {
+			filePath := filepath.Join(logsDir, dirEntry.Name(), fileName)
+			logEntries, err := readJSONL(filePath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "warning: failed to read %s: %v\n", filePath, err)
 				continue
 			}
-			fmt.Fprintf(os.Stderr, "warning: failed to read %s: %v\n", filePath, err)
-			continue
+			allEntries = append(allEntries, logEntries...)
 		}
-		allEntries = append(allEntries, logEntries...)
 	}
 
-	return allEntries, nil
+	return filterByTimeRange(allEntries, dayStart, dayEnd), nil
+}
+
+// filterByTimeRange はエントリをタイムスタンプの範囲でフィルタリングする。
+// start <= timestamp < end の範囲に含まれるエントリを返す。
+// タイムスタンプがパースできないエントリは安全側で含める。
+func filterByTimeRange(entries []logging.LogEntry, start, end time.Time) []logging.LogEntry {
+	var filtered []logging.LogEntry
+	for _, entry := range entries {
+		t, err := time.Parse(time.RFC3339, entry.Timestamp)
+		if err != nil {
+			// パースできないエントリは含める
+			filtered = append(filtered, entry)
+			continue
+		}
+		if !t.Before(start) && t.Before(end) {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered
 }
 
 // readJSONL は JSONL ファイルを読み込み、LogEntry のスライスを返す。

@@ -84,6 +84,73 @@ func TestIsoWeekStartEnd_Consistency(t *testing.T) {
 	}
 }
 
+func TestWeekStartSat_NormalWeek(t *testing.T) {
+	// Given: 2026-W09（ISO 月曜 = 2/23）
+	// When: weekStartSat を呼ぶ
+	got := weekStartSat(2026, 9)
+
+	// Then: 2026-02-21（土曜）が返る
+	expected := time.Date(2026, 2, 21, 0, 0, 0, 0, time.UTC)
+	if !got.Equal(expected) {
+		t.Errorf("expected %s (%s), got %s (%s)",
+			expected.Format("2006-01-02"), expected.Weekday(),
+			got.Format("2006-01-02"), got.Weekday())
+	}
+}
+
+func TestWeekEndFri_NormalWeek(t *testing.T) {
+	// Given: 2026-W09
+	// When: weekEndFri を呼ぶ
+	got := weekEndFri(2026, 9)
+
+	// Then: 2026-02-27（金曜）が返る
+	expected := time.Date(2026, 2, 27, 0, 0, 0, 0, time.UTC)
+	if !got.Equal(expected) {
+		t.Errorf("expected %s (%s), got %s (%s)",
+			expected.Format("2006-01-02"), expected.Weekday(),
+			got.Format("2006-01-02"), got.Weekday())
+	}
+}
+
+func TestWeekStartEndSat_Consistency(t *testing.T) {
+	// Given: 複数の週について
+	// Then: start = Saturday, end = Friday, end - start = 6日
+	testCases := []struct{ year, week int }{
+		{2026, 1}, {2026, 9}, {2026, 52}, {2025, 1},
+	}
+	for _, tc := range testCases {
+		start := weekStartSat(tc.year, tc.week)
+		end := weekEndFri(tc.year, tc.week)
+
+		if start.Weekday() != time.Saturday {
+			t.Errorf("W%02d: start weekday = %s, want Saturday", tc.week, start.Weekday())
+		}
+		if end.Weekday() != time.Friday {
+			t.Errorf("W%02d: end weekday = %s, want Friday", tc.week, end.Weekday())
+		}
+		diff := end.Sub(start)
+		if diff != 6*24*time.Hour {
+			t.Errorf("W%02d: end - start = %v, want 6 days", tc.week, diff)
+		}
+	}
+}
+
+func TestWeekFileName(t *testing.T) {
+	// Given: 2026-W09（土曜 = 2/21 → 2月）
+	got := weekFileName(2026, 9)
+	expected := "2026-02-W09.md"
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
+	}
+
+	// W10 の土曜 = 2/28 → 2月
+	got = weekFileName(2026, 10)
+	expected = "2026-02-W10.md"
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
+	}
+}
+
 func TestReadReportFile_Exists(t *testing.T) {
 	// Given: 内容のあるレポートファイル
 	dir := t.TempDir()

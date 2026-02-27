@@ -21,13 +21,13 @@ func setupMonthlyTestReports(t *testing.T) (weeklyDir, dailyDir, outputDir, prom
 	os.MkdirAll(dailyDir, 0o755)
 	os.MkdirAll(promptDir, 0o755)
 
-	// 2026年2月の週次レポート（W05〜W09 のうち月曜が2月のもの）
-	// W06: 2/2（月）, W07: 2/9（月）, W08: 2/16（月）, W09: 2/23（月）
+	// 2026年2月の週次レポート（土曜が2月内のもの）
+	// 2/7(土)=W07, 2/14(土)=W08, 2/21(土)=W09, 2/28(土)=W10
 	weeklyReports := map[string]string{
-		"2026-W06.md": "第6週のサマリ",
-		"2026-W07.md": "第7週のサマリ",
-		"2026-W08.md": "第8週のサマリ",
-		"2026-W09.md": "第9週のサマリ",
+		"2026-02-W07.md": "第7週のサマリ",
+		"2026-02-W08.md": "第8週のサマリ",
+		"2026-02-W09.md": "第9週のサマリ",
+		"2026-02-W10.md": "第10週のサマリ",
 	}
 	for name, content := range weeklyReports {
 		os.WriteFile(filepath.Join(weeklyDir, name), []byte(content+"\n"), 0o644)
@@ -92,7 +92,7 @@ func TestRunMonthlyWith_WeeklyOnly(t *testing.T) {
 	os.MkdirAll(weeklyDir, 0o755)
 	os.MkdirAll(dailyDir, 0o755)
 
-	os.WriteFile(filepath.Join(weeklyDir, "2026-W06.md"), []byte("Week 6 report\n"), 0o644)
+	os.WriteFile(filepath.Join(weeklyDir, "2026-02-W07.md"), []byte("Week 7 report\n"), 0o644)
 
 	promptPath := filepath.Join(base, "prompt.md")
 	os.WriteFile(promptPath, []byte("{{.Period}}"), 0o644)
@@ -243,13 +243,13 @@ func TestWeeksInMonth_February2026(t *testing.T) {
 	// When: weeksInMonth を呼ぶ
 	weeks := weeksInMonth(2026, 2)
 
-	// Then: 月曜が2月内の週が返る
-	// 2/2(月)=W06, 2/9(月)=W07, 2/16(月)=W08, 2/23(月)=W09
+	// Then: 土曜が2月内の週が返る
+	// 2/7(土)=W07, 2/14(土)=W08, 2/21(土)=W09, 2/28(土)=W10
 	if len(weeks) != 4 {
 		t.Fatalf("expected 4 weeks, got %d: %v", len(weeks), weeks)
 	}
 
-	expectedWeeks := []int{6, 7, 8, 9}
+	expectedWeeks := []int{7, 8, 9, 10}
 	for i, ew := range expectedWeeks {
 		if weeks[i].Week != ew {
 			t.Errorf("week[%d]: expected W%02d, got W%02d", i, ew, weeks[i].Week)
@@ -262,23 +262,26 @@ func TestWeeksInMonth_January2026(t *testing.T) {
 	// When: weeksInMonth を呼ぶ
 	weeks := weeksInMonth(2026, 1)
 
-	// Then: 1月内の月曜日が属する週が返る
-	// 1/5(月)=W02, 1/12(月)=W03, 1/19(月)=W04, 1/26(月)=W05
-	if len(weeks) != 4 {
-		t.Fatalf("expected 4 weeks, got %d: %v", len(weeks), weeks)
+	// Then: 1月内の土曜日が属する週が返る
+	// 1/3(土)=W02, 1/10(土)=W03, 1/17(土)=W04, 1/24(土)=W05, 1/31(土)=W06
+	if len(weeks) != 5 {
+		t.Fatalf("expected 5 weeks, got %d: %v", len(weeks), weeks)
 	}
 	if weeks[0].Week != 2 {
 		t.Errorf("first week: expected W02, got W%02d", weeks[0].Week)
+	}
+	if weeks[4].Week != 6 {
+		t.Errorf("last week: expected W06, got W%02d", weeks[4].Week)
 	}
 }
 
 func TestCollectWeeklyReports_Format(t *testing.T) {
 	// Given: 2つの週次レポート
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "2026-W06.md"), []byte("Week 6 content\n"), 0o644)
-	os.WriteFile(filepath.Join(dir, "2026-W07.md"), []byte("Week 7 content\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "2026-02-W07.md"), []byte("Week 7 content\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "2026-02-W08.md"), []byte("Week 8 content\n"), 0o644)
 
-	weeks := []isoWeek{{2026, 6}, {2026, 7}, {2026, 8}} // W08 は存在しない
+	weeks := []isoWeek{{2026, 7}, {2026, 8}, {2026, 9}} // W09 は存在しない
 
 	// When: collectWeeklyReports を呼ぶ
 	combined, count, err := collectWeeklyReports(dir, weeks)
@@ -290,14 +293,14 @@ func TestCollectWeeklyReports_Format(t *testing.T) {
 	if count != 2 {
 		t.Errorf("expected 2 reports, got %d", count)
 	}
-	if !strings.Contains(combined, "## 第6週") {
-		t.Errorf("expected week 6 header, got:\n%s", combined)
-	}
 	if !strings.Contains(combined, "## 第7週") {
 		t.Errorf("expected week 7 header, got:\n%s", combined)
 	}
-	if !strings.Contains(combined, "Week 6 content") {
-		t.Errorf("expected week 6 content, got:\n%s", combined)
+	if !strings.Contains(combined, "## 第8週") {
+		t.Errorf("expected week 8 header, got:\n%s", combined)
+	}
+	if !strings.Contains(combined, "Week 7 content") {
+		t.Errorf("expected week 7 content, got:\n%s", combined)
 	}
 }
 

@@ -37,9 +37,9 @@ func RunWeekly(ctx context.Context, params WeeklyParams) error {
 func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) error {
 	weekLabel := fmt.Sprintf("%d-W%02d", params.Year, params.Week)
 
-	// 1. 週の日付範囲を計算
-	start := isoWeekStart(params.Year, params.Week)
-	end := isoWeekEnd(params.Year, params.Week)
+	// 1. 週の日付範囲を計算（土曜〜金曜）
+	start := weekStartSat(params.Year, params.Week)
+	end := weekEndFri(params.Year, params.Week)
 
 	// 2. 日次レポートを収集・結合
 	combined, count, err := collectDailyReports(params.DailyDir, start, end)
@@ -68,7 +68,7 @@ func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) 
 	}
 
 	// 5. 結果保存
-	fileName := weekLabel + ".md"
+	fileName := weekFileName(params.Year, params.Week)
 	if err := writeReportFile(params.OutputDir, fileName, result); err != nil {
 		return fmt.Errorf("failed to write report: %w", err)
 	}

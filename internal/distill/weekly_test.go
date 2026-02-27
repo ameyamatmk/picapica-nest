@@ -10,7 +10,7 @@ import (
 )
 
 // setupWeeklyTestReports はテスト用の日次レポートを配置する。
-// 2026-W09 (2/23〜3/1) のうち 5日分のレポートを作成する。
+// 2026-W09 (土 2/21〜金 2/27) のうち 5日分のレポートを作成する。
 func setupWeeklyTestReports(t *testing.T) (dailyDir, outputDir, promptPath string) {
 	t.Helper()
 	base := t.TempDir()
@@ -20,14 +20,15 @@ func setupWeeklyTestReports(t *testing.T) (dailyDir, outputDir, promptPath strin
 	os.MkdirAll(dailyDir, 0o755)
 	os.MkdirAll(promptDir, 0o755)
 
-	// 5日分のレポートを配置（2/25, 2/26 はスキップ）
+	// 5日分のレポートを配置（2/22, 2/25 はスキップ）
 	reports := map[string]string{
-		"2026-02-23.md": "# トピック1\n\n月曜の活動内容",
-		"2026-02-24.md": "# トピック2\n\n火曜の活動内容",
-		// 2/25, 2/26 はなし
-		"2026-02-27.md": "# トピック3\n\n金曜の活動内容",
-		"2026-02-28.md": "# トピック4\n\n土曜の活動内容",
-		"2026-03-01.md": "# トピック5\n\n日曜の活動内容",
+		"2026-02-21.md": "# トピック1\n\n土曜の活動内容",
+		// 2/22 はなし
+		"2026-02-23.md": "# トピック2\n\n月曜の活動内容",
+		"2026-02-24.md": "# トピック3\n\n火曜の活動内容",
+		// 2/25 はなし
+		"2026-02-26.md": "# トピック4\n\n木曜の活動内容",
+		"2026-02-27.md": "# トピック5\n\n金曜の活動内容",
 	}
 	for name, content := range reports {
 		os.WriteFile(filepath.Join(dailyDir, name), []byte(content+"\n"), 0o644)
@@ -61,7 +62,7 @@ func TestRunWeeklyWith_Success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	reportPath := filepath.Join(outputDir, "2026-W09.md")
+	reportPath := filepath.Join(outputDir, "2026-02-W09.md")
 	content, err := os.ReadFile(reportPath)
 	if err != nil {
 		t.Fatalf("failed to read report: %v", err)
@@ -99,7 +100,7 @@ func TestRunWeeklyWith_NoReports(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	reportPath := filepath.Join(outputDir, "2026-W09.md")
+	reportPath := filepath.Join(outputDir, "2026-02-W09.md")
 	if _, err := os.Stat(reportPath); !os.IsNotExist(err) {
 		t.Error("expected no report to be generated")
 	}
@@ -156,11 +157,11 @@ func TestRunWeeklyWith_PromptReceivesPeriod(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Then: prompt に期間、stdin に日次レポートが含まれる
-	if !strings.Contains(capturedPrompt, "2026年2月23日〜3月1日") {
+	// Then: prompt に期間（土〜金）、stdin に日次レポートが含まれる
+	if !strings.Contains(capturedPrompt, "2026年2月21日〜27日") {
 		t.Errorf("expected period in prompt, got:\n%s", capturedPrompt)
 	}
-	if !strings.Contains(capturedStdin, "月曜の活動内容") {
+	if !strings.Contains(capturedStdin, "土曜の活動内容") {
 		t.Errorf("expected daily content in stdin, got:\n%s", capturedStdin)
 	}
 }
@@ -168,11 +169,11 @@ func TestRunWeeklyWith_PromptReceivesPeriod(t *testing.T) {
 func TestCollectDailyReports_Format(t *testing.T) {
 	// Given: 2日分の日次レポート
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "2026-02-23.md"), []byte("Report A\n"), 0o644)
-	os.WriteFile(filepath.Join(dir, "2026-02-24.md"), []byte("Report B\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "2026-02-21.md"), []byte("Report A\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "2026-02-23.md"), []byte("Report B\n"), 0o644)
 
-	start := isoWeekStart(2026, 9)  // 2/23
-	end := isoWeekEnd(2026, 9)      // 3/1
+	start := weekStartSat(2026, 9) // 2/21（土）
+	end := weekEndFri(2026, 9)     // 2/27（金）
 
 	// When: collectDailyReports を呼ぶ
 	combined, count, err := collectDailyReports(dir, start, end)
@@ -184,11 +185,11 @@ func TestCollectDailyReports_Format(t *testing.T) {
 	if count != 2 {
 		t.Errorf("expected 2 reports, got %d", count)
 	}
+	if !strings.Contains(combined, "# 2026年2月21日（土）") {
+		t.Errorf("expected Saturday header, got:\n%s", combined)
+	}
 	if !strings.Contains(combined, "# 2026年2月23日（月）") {
 		t.Errorf("expected Monday header, got:\n%s", combined)
-	}
-	if !strings.Contains(combined, "# 2026年2月24日（火）") {
-		t.Errorf("expected Tuesday header, got:\n%s", combined)
 	}
 	if !strings.Contains(combined, "Report A") || !strings.Contains(combined, "Report B") {
 		t.Errorf("expected report contents, got:\n%s", combined)
