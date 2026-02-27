@@ -9,7 +9,8 @@ import (
 
 // PromptData はプロンプトテンプレートに渡す変数。
 type PromptData struct {
-	Date string // "2026年2月28日"
+	Date   string // "2026年2月28日"（日次用）
+	Period string // "2026年2月23日〜3月1日"（週次）or "2026年2月"（月次）
 }
 
 // LoadPrompt はテンプレートファイルを読み込み、変数展開して返す。
