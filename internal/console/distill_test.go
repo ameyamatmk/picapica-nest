@@ -150,7 +150,7 @@ func TestHandleDistill_ReturnsHTML(t *testing.T) {
 	os.MkdirAll(dailyDir, 0o755)
 	os.WriteFile(filepath.Join(dailyDir, "2026-02-28.md"), []byte("# Test Report"), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: GET /distill にリクエスト
 	req := httptest.NewRequest("GET", "/distill", nil)
@@ -355,7 +355,7 @@ func TestHandleDistill_DailyShowsCalendar(t *testing.T) {
 	os.MkdirAll(dailyDir, 0o755)
 	os.WriteFile(filepath.Join(dailyDir, "2026-02-28.md"), []byte("# Daily Report"), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: GET /distill?tab=daily
 	req := httptest.NewRequest("GET", "/distill?tab=daily", nil)
@@ -376,7 +376,7 @@ func TestHandleDistillContent_MonthNavigation(t *testing.T) {
 	os.MkdirAll(dailyDir, 0o755)
 	os.WriteFile(filepath.Join(dailyDir, "2026-01-15.md"), []byte("# Jan"), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: 1月のカレンダーをリクエスト
 	req := httptest.NewRequest("GET", "/distill/content?tab=daily&year=2026&month=1", nil)
@@ -397,7 +397,7 @@ func TestHandleDistillContent_WeeklyStillShowsList(t *testing.T) {
 	os.MkdirAll(weeklyDir, 0o755)
 	os.WriteFile(filepath.Join(weeklyDir, "2026-02-W09.md"), []byte("# Weekly"), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: GET /distill/content?tab=weekly
 	req := httptest.NewRequest("GET", "/distill/content?tab=weekly", nil)
@@ -421,7 +421,7 @@ func TestHandleDistillContent_Fragment(t *testing.T) {
 	os.MkdirAll(weeklyDir, 0o755)
 	os.WriteFile(filepath.Join(weeklyDir, "2026-02-W09.md"), []byte("# Weekly"), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: GET /distill/content?tab=weekly にリクエスト
 	req := httptest.NewRequest("GET", "/distill/content?tab=weekly", nil)

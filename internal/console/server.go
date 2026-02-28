@@ -43,15 +43,27 @@ type Server struct {
 	applogTmpl        *template.Template
 }
 
+// ServerOption は NewServer に渡すオプション関数。
+type ServerOption func(*Server)
+
+// WithResolver はチャンネルラベル解決用の Resolver を設定する。
+func WithResolver(r *channellabel.Resolver) ServerOption {
+	return func(s *Server) { s.resolver = r }
+}
+
+// WithPricer はコスト計算用の Pricer を設定する。
+func WithPricer(p *pricing.Pricer) ServerOption {
+	return func(s *Server) { s.pricer = p }
+}
+
 // NewServer は新しい Web Console サーバーを作成する。
 // workspacePath は PicoClaw ワークスペースのパス。
-// resolver は nil でもよい（その場合フォールバック表示）。
-// pricer は nil でもよい（その場合コスト表示は $0.00 / -）。
-func NewServer(workspacePath string, resolver *channellabel.Resolver, pricer *pricing.Pricer) *Server {
+func NewServer(workspacePath string, opts ...ServerOption) *Server {
 	s := &Server{
 		workspacePath: workspacePath,
-		resolver:      resolver,
-		pricer:        pricer,
+	}
+	for _, opt := range opts {
+		opt(s)
 	}
 
 	funcMap := template.FuncMap{

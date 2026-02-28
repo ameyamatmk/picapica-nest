@@ -136,7 +136,14 @@ func cmdServe() error {
 	}
 
 	// Console server をバックグラウンドで起動
-	consoleServer := console.NewServer(cfg.WorkspacePath(), labelResolver, pricer)
+	var consoleOpts []console.ServerOption
+	if labelResolver != nil {
+		consoleOpts = append(consoleOpts, console.WithResolver(labelResolver))
+	}
+	if pricer != nil {
+		consoleOpts = append(consoleOpts, console.WithPricer(pricer))
+	}
+	consoleServer := console.NewServer(cfg.WorkspacePath(), consoleOpts...)
 	go func() {
 		if err := consoleServer.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("console server error", "error", err)

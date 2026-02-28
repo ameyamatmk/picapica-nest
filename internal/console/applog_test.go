@@ -21,7 +21,7 @@ func TestHandleAppLog_ReturnsHTML(t *testing.T) {
 `
 	os.WriteFile(filepath.Join(logDir, "2026-02-28.jsonl"), []byte(logData), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: GET /logs にリクエスト
 	req := httptest.NewRequest("GET", "/logs", nil)
@@ -48,7 +48,7 @@ func TestHandleAppLog_EmptyLogs(t *testing.T) {
 	// Given: ログディレクトリが存在しないワークスペース
 	dir := t.TempDir()
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: GET /logs にリクエスト
 	req := httptest.NewRequest("GET", "/logs", nil)
@@ -78,7 +78,7 @@ func TestHandleAppLogEntries_WithData(t *testing.T) {
 `
 	os.WriteFile(filepath.Join(logDir, "2026-02-28.jsonl"), []byte(logData), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: GET /logs/entries?date=2026-02-28.jsonl にリクエスト
 	req := httptest.NewRequest("GET", "/logs/entries?date=2026-02-28.jsonl", nil)
@@ -118,7 +118,7 @@ func TestHandleAppLogEntries_FilterByLevel(t *testing.T) {
 `
 	os.WriteFile(filepath.Join(logDir, "2026-02-28.jsonl"), []byte(logData), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: WARN レベル以上でフィルタ
 	req := httptest.NewRequest("GET", "/logs/entries?date=2026-02-28.jsonl&level=WARN", nil)

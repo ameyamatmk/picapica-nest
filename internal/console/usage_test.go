@@ -176,7 +176,7 @@ func TestHandleUsage_ReturnsHTML(t *testing.T) {
 	records := `{"ts":"2026-02-28T09:00:00Z","model":"claude","prompt_tokens":100,"completion_tokens":50,"total_tokens":150,"latency_ms":300}`
 	os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(records), 0o644)
 
-	s := NewServer(dir, nil, nil)
+	s := NewServer(dir)
 
 	// When: GET /usage にリクエスト
 	req := httptest.NewRequest("GET", "/usage", nil)
@@ -202,7 +202,7 @@ func TestHandleUsage_ReturnsHTML(t *testing.T) {
 
 func TestHandleUsage_EmptyData(t *testing.T) {
 	// Given: usage.jsonl が存在しない
-	s := NewServer(t.TempDir(), nil, nil)
+	s := NewServer(t.TempDir())
 
 	// When: GET /usage にリクエスト
 	req := httptest.NewRequest("GET", "/usage", nil)
