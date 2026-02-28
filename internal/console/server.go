@@ -29,8 +29,12 @@ type Server struct {
 
 	// ページごとにテンプレートセットを保持する。
 	// "content" 定義の衝突を避けるため、layout + ページ固有テンプレートを組み合わせる。
-	distillTmpl *template.Template
-	usageTmpl   *template.Template
+	dashboardTmpl     *template.Template
+	distillTmpl       *template.Template
+	conversationsTmpl *template.Template
+	workspaceTmpl     *template.Template
+	usageTmpl         *template.Template
+	applogTmpl        *template.Template
 }
 
 // NewServer は新しい Web Console サーバーを作成する。
@@ -44,11 +48,31 @@ func NewServer(workspacePath string) *Server {
 		"comma": formatComma,
 	}
 
+	s.dashboardTmpl = template.Must(
+		template.New("").Funcs(funcMap).ParseFS(templateFS,
+			"templates/layout.html",
+			"templates/dashboard.html",
+		),
+	)
 	s.distillTmpl = template.Must(
 		template.New("").Funcs(funcMap).ParseFS(templateFS,
 			"templates/layout.html",
 			"templates/distill.html",
 			"templates/distill_content.html",
+		),
+	)
+	s.conversationsTmpl = template.Must(
+		template.New("").Funcs(funcMap).ParseFS(templateFS,
+			"templates/layout.html",
+			"templates/conversations.html",
+			"templates/conversations_content.html",
+		),
+	)
+	s.workspaceTmpl = template.Must(
+		template.New("").Funcs(funcMap).ParseFS(templateFS,
+			"templates/layout.html",
+			"templates/workspace.html",
+			"templates/workspace_content.html",
 		),
 	)
 	s.usageTmpl = template.Must(
@@ -57,12 +81,26 @@ func NewServer(workspacePath string) *Server {
 			"templates/usage.html",
 		),
 	)
+	s.applogTmpl = template.Must(
+		template.New("").Funcs(funcMap).ParseFS(templateFS,
+			"templates/layout.html",
+			"templates/applog.html",
+			"templates/applog_content.html",
+		),
+	)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.handleIndex)
+	mux.HandleFunc("GET /dashboard", s.handleDashboard)
 	mux.HandleFunc("GET /distill", s.handleDistill)
 	mux.HandleFunc("GET /distill/content", s.handleDistillContent)
+	mux.HandleFunc("GET /conversations", s.handleConversations)
+	mux.HandleFunc("GET /conversations/messages", s.handleConversationMessages)
+	mux.HandleFunc("GET /workspace", s.handleWorkspace)
+	mux.HandleFunc("GET /workspace/content", s.handleWorkspaceContent)
 	mux.HandleFunc("GET /usage", s.handleUsage)
+	mux.HandleFunc("GET /logs", s.handleAppLog)
+	mux.HandleFunc("GET /logs/entries", s.handleAppLogEntries)
 
 	staticSub, _ := fs.Sub(staticFS, "static")
 	mux.Handle("GET /static/", http.StripPrefix("/static/", cacheControl(http.FileServerFS(staticSub))))
@@ -90,7 +128,7 @@ func (s *Server) Stop(ctx context.Context) error {
 
 // handleIndex は / へのアクセスを /distill にリダイレクトする。
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/distill", http.StatusFound)
+	http.Redirect(w, r, "/dashboard", http.StatusFound)
 }
 
 // pageData はテンプレートに渡す共通データ。
