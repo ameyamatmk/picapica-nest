@@ -141,8 +141,9 @@ func TestListWorkspaceFiles(t *testing.T) {
 	// prompts/ ディレクトリ（表示対象）
 	promptsDir := filepath.Join(dir, "prompts")
 	os.MkdirAll(promptsDir, 0o755)
-	os.WriteFile(filepath.Join(promptsDir, "rewrite.md"), []byte("# Rewrite"), 0o644)
-	os.WriteFile(filepath.Join(promptsDir, "system.md"), []byte("# System"), 0o644)
+	os.WriteFile(filepath.Join(promptsDir, "daily_hindsight.md"), []byte("# Daily"), 0o644)
+	os.WriteFile(filepath.Join(promptsDir, "weekly_hindsight.md"), []byte("# Weekly"), 0o644)
+	os.WriteFile(filepath.Join(promptsDir, "monthly_hindsight.md"), []byte("# Monthly"), 0o644)
 
 	// 除外ディレクトリ
 	os.MkdirAll(filepath.Join(dir, "memory", "daily"), 0o755)
@@ -159,9 +160,9 @@ func TestListWorkspaceFiles(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Then: ルート .md ファイル3つ + prompts ディレクトリヘッダー1つ + prompts 内 .md ファイル2つ = 6
-	if len(files) != 6 {
-		t.Fatalf("expected 6 entries, got %d: %+v", len(files), files)
+	// Then: ルート3 + promptsヘッダー1 + prompts内3 = 7
+	if len(files) != 7 {
+		t.Fatalf("expected 7 entries, got %d: %+v", len(files), files)
 	}
 
 	// Then: ルートファイルはアルファベット順
@@ -180,12 +181,15 @@ func TestListWorkspaceFiles(t *testing.T) {
 		t.Errorf("expected prompts dir header, got %+v", files[3])
 	}
 
-	// Then: prompts 内のファイルは Depth=1
-	if files[4].Path != "prompts/rewrite.md" || files[4].Depth != 1 {
-		t.Errorf("expected prompts/rewrite.md with depth 1, got %+v", files[4])
+	// Then: prompts 内は daily → weekly → monthly の順
+	if files[4].Path != "prompts/daily_hindsight.md" || files[4].Depth != 1 {
+		t.Errorf("expected prompts/daily_hindsight.md with depth 1, got %+v", files[4])
 	}
-	if files[5].Path != "prompts/system.md" || files[5].Depth != 1 {
-		t.Errorf("expected prompts/system.md with depth 1, got %+v", files[5])
+	if files[5].Path != "prompts/weekly_hindsight.md" || files[5].Depth != 1 {
+		t.Errorf("expected prompts/weekly_hindsight.md with depth 1, got %+v", files[5])
+	}
+	if files[6].Path != "prompts/monthly_hindsight.md" || files[6].Depth != 1 {
+		t.Errorf("expected prompts/monthly_hindsight.md with depth 1, got %+v", files[6])
 	}
 
 	// Then: 除外ディレクトリのファイルが含まれない
@@ -201,6 +205,38 @@ func TestListWorkspaceFiles(t *testing.T) {
 		if f.Path == "usage.jsonl" {
 			t.Error("non-.md file should not be listed")
 		}
+	}
+}
+
+func TestListWorkspaceFiles_DailyWeeklyMonthlyOrder(t *testing.T) {
+	// Given: prompts/ に daily, weekly, monthly のファイルがある
+	dir := t.TempDir()
+	promptsDir := filepath.Join(dir, "prompts")
+	os.MkdirAll(promptsDir, 0o755)
+	os.WriteFile(filepath.Join(promptsDir, "monthly_hindsight.md"), []byte("# M"), 0o644)
+	os.WriteFile(filepath.Join(promptsDir, "daily_hindsight.md"), []byte("# D"), 0o644)
+	os.WriteFile(filepath.Join(promptsDir, "weekly_hindsight.md"), []byte("# W"), 0o644)
+
+	// When: listWorkspaceFiles を呼ぶ
+	files, err := listWorkspaceFiles(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Then: ディレクトリヘッダー + 3ファイル = 4エントリ
+	if len(files) != 4 {
+		t.Fatalf("expected 4 entries, got %d: %+v", len(files), files)
+	}
+
+	// Then: daily → weekly → monthly の順
+	if files[1].Name != "daily_hindsight.md" {
+		t.Errorf("expected first file 'daily_hindsight.md', got %q", files[1].Name)
+	}
+	if files[2].Name != "weekly_hindsight.md" {
+		t.Errorf("expected second file 'weekly_hindsight.md', got %q", files[2].Name)
+	}
+	if files[3].Name != "monthly_hindsight.md" {
+		t.Errorf("expected third file 'monthly_hindsight.md', got %q", files[3].Name)
 	}
 }
 
