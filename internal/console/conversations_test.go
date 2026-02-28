@@ -23,7 +23,7 @@ func TestHandleConversations_ReturnsHTML(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: GET /conversations にリクエスト
 	req := httptest.NewRequest("GET", "/conversations", nil)
@@ -50,7 +50,7 @@ func TestHandleConversations_EmptyLogs(t *testing.T) {
 	// Given: ログディレクトリが存在しないワークスペース
 	dir := t.TempDir()
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: GET /conversations にリクエスト
 	req := httptest.NewRequest("GET", "/conversations", nil)
@@ -81,7 +81,7 @@ func TestHandleConversationMessages_WithData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: GET /conversations/messages にリクエスト
 	req := httptest.NewRequest("GET", "/conversations/messages?channel=discord_general&date=2026-02-27.jsonl", nil)

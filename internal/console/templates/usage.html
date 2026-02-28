@@ -10,6 +10,7 @@
 {{else if not .Days}}
 <p><em>データがありません</em></p>
 {{else}}
+<p><strong>期間合計:</strong> {{formatUSD .TotalCostUSD}}{{if .TotalCostJPY}}（約 {{formatJPY .TotalCostJPY}}）{{end}}</p>
 <canvas id="usage-chart" style="max-height: 350px; margin-bottom: 1.5rem;"></canvas>
 <figure>
 <table>
@@ -20,6 +21,8 @@
             <th>Prompt Tokens</th>
             <th>Completion Tokens</th>
             <th>Total Tokens</th>
+            <th>コスト (USD)</th>
+            <th>コスト (JPY)</th>
             <th>エラー数</th>
             <th>平均レイテンシ</th>
         </tr>
@@ -32,6 +35,8 @@
             <td class="num">{{comma .PromptTokens}}</td>
             <td class="num">{{comma .CompletionTokens}}</td>
             <td class="num">{{comma .TotalTokens}}</td>
+            <td class="num">{{formatUSD .CostUSD}}</td>
+            <td class="num">{{formatJPY .CostJPY}}</td>
             <td class="num">{{.ErrorCount}}</td>
             <td class="num">{{comma .AvgLatencyMs}}ms</td>
         </tr>

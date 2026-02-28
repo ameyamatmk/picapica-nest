@@ -20,7 +20,7 @@ func TestHandleDashboard_ReturnsHTML(t *testing.T) {
 	records := `{"ts":"2026-02-28T09:00:00Z","model":"claude","prompt_tokens":100,"completion_tokens":50,"total_tokens":150,"latency_ms":300}`
 	os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(records), 0o644)
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: GET /dashboard にリクエスト
 	req := httptest.NewRequest("GET", "/dashboard", nil)
@@ -45,7 +45,7 @@ func TestHandleDashboard_ReturnsHTML(t *testing.T) {
 
 func TestHandleDashboard_EmptyWorkspace(t *testing.T) {
 	// Given: 空のワークスペース（何もファイルがない）
-	s := NewServer(t.TempDir(), nil)
+	s := NewServer(t.TempDir())
 
 	// When: GET /dashboard にリクエスト
 	req := httptest.NewRequest("GET", "/dashboard", nil)
@@ -85,7 +85,7 @@ func TestBuildDashboardData_WithReports(t *testing.T) {
 		0o644,
 	)
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: buildDashboardData を呼ぶ
 	data := s.buildDashboardData()
@@ -144,7 +144,7 @@ func TestBuildDashboardData_WithUsage(t *testing.T) {
 	}, "\n")
 	os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(records), 0o644)
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: buildDashboardData を呼ぶ
 	data := s.buildDashboardData()

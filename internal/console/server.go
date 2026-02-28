@@ -9,10 +9,12 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
+	"math"
 	"net/http"
 	"time"
 
 	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
+	"github.com/ameyamatmk/picapica-nest/internal/pricing"
 )
 
 // Port は Web コンソールのリスンポート。
@@ -29,6 +31,7 @@ type Server struct {
 	server        *http.Server
 	workspacePath string
 	resolver      *channellabel.Resolver
+	pricer        *pricing.Pricer
 
 	// ページごとにテンプレートセットを保持する。
 	// "content" 定義の衝突を避けるため、layout + ページ固有テンプレートを組み合わせる。
@@ -40,17 +43,33 @@ type Server struct {
 	applogTmpl        *template.Template
 }
 
+// ServerOption は NewServer に渡すオプション関数。
+type ServerOption func(*Server)
+
+// WithResolver はチャンネルラベル解決用の Resolver を設定する。
+func WithResolver(r *channellabel.Resolver) ServerOption {
+	return func(s *Server) { s.resolver = r }
+}
+
+// WithPricer はコスト計算用の Pricer を設定する。
+func WithPricer(p *pricing.Pricer) ServerOption {
+	return func(s *Server) { s.pricer = p }
+}
+
 // NewServer は新しい Web Console サーバーを作成する。
 // workspacePath は PicoClaw ワークスペースのパス。
-// resolver は nil でもよい（その場合フォールバック表示）。
-func NewServer(workspacePath string, resolver *channellabel.Resolver) *Server {
+func NewServer(workspacePath string, opts ...ServerOption) *Server {
 	s := &Server{
 		workspacePath: workspacePath,
-		resolver:      resolver,
+	}
+	for _, opt := range opts {
+		opt(s)
 	}
 
 	funcMap := template.FuncMap{
-		"comma": formatComma,
+		"comma":     formatComma,
+		"formatUSD": formatUSD,
+		"formatJPY": formatJPY,
 	}
 
 	s.dashboardTmpl = template.Must(
@@ -149,6 +168,20 @@ func cacheControl(next http.Handler) http.Handler {
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 		next.ServeHTTP(w, r)
 	})
+}
+
+// formatUSD は USD 金額を "$0.0123" 形式にフォーマットする。
+func formatUSD(v float64) string {
+	return fmt.Sprintf("$%.4f", v)
+}
+
+// formatJPY は JPY 金額を "¥123" 形式にフォーマットする。
+// nil の場合は "-" を返す。
+func formatJPY(v *float64) string {
+	if v == nil {
+		return "-"
+	}
+	return fmt.Sprintf("¥%s", formatComma(int64(math.Round(*v))))
 }
 
 // formatComma は数値をコンマ区切りの文字列に変換する。

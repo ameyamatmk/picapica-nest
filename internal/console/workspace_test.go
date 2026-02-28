@@ -16,7 +16,7 @@ func TestHandleWorkspace_ReturnsHTML(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: GET /workspace にリクエスト
 	req := httptest.NewRequest("GET", "/workspace", nil)
@@ -43,7 +43,7 @@ func TestHandleWorkspace_EmptyWorkspace(t *testing.T) {
 	// Given: 空のワークスペース
 	dir := t.TempDir()
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: GET /workspace にリクエスト
 	req := httptest.NewRequest("GET", "/workspace", nil)
@@ -70,7 +70,7 @@ func TestHandleWorkspaceContent_ReadsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: GET /workspace/content?file=AGENTS.md にリクエスト
 	req := httptest.NewRequest("GET", "/workspace/content?file=AGENTS.md", nil)
@@ -109,7 +109,7 @@ func TestHandleWorkspaceContent_SubdirectoryFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir)
 
 	// When: サブディレクトリのファイルを指定してリクエスト
 	req := httptest.NewRequest("GET", "/workspace/content?file=prompts/rewrite.md", nil)

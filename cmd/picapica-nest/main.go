@@ -15,6 +15,7 @@ import (
 	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 	"github.com/ameyamatmk/picapica-nest/internal/console"
 	"github.com/ameyamatmk/picapica-nest/internal/logging"
+	"github.com/ameyamatmk/picapica-nest/internal/pricing"
 	"github.com/ameyamatmk/picapica-nest/internal/provider"
 	isession "github.com/ameyamatmk/picapica-nest/internal/session"
 	"github.com/sipeed/picoclaw/pkg/agent"
@@ -30,6 +31,12 @@ import (
 func configPath() string {
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".picapica-nest", "config.json")
+}
+
+// pricingConfigPath は pricing 設定ファイルのパスを返す。
+func pricingConfigPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".picapica-nest", "pricing.json")
 }
 
 func cmdServe() error {
@@ -122,8 +129,21 @@ func cmdServe() error {
 		slog.Info("channel label resolver configured", "component", "channellabel")
 	}
 
+	// Pricer 初期化（pricing.json が無い場合もエラーにならない）
+	pricer, err := pricing.NewPricer(pricingConfigPath())
+	if err != nil {
+		slog.Warn("failed to load pricing config, cost display disabled", "error", err)
+	}
+
 	// Console server をバックグラウンドで起動
-	consoleServer := console.NewServer(cfg.WorkspacePath(), labelResolver)
+	var consoleOpts []console.ServerOption
+	if labelResolver != nil {
+		consoleOpts = append(consoleOpts, console.WithResolver(labelResolver))
+	}
+	if pricer != nil {
+		consoleOpts = append(consoleOpts, console.WithPricer(pricer))
+	}
+	consoleServer := console.NewServer(cfg.WorkspacePath(), consoleOpts...)
 	go func() {
 		if err := consoleServer.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("console server error", "error", err)
