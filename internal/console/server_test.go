@@ -31,7 +31,7 @@ func TestFormatComma(t *testing.T) {
 
 func TestHandleIndex_RedirectsToDashboard(t *testing.T) {
 	// Given: Console サーバー
-	s := NewServer(t.TempDir())
+	s := NewServer(t.TempDir(), nil)
 
 	// When: GET / にリクエスト
 	req := httptest.NewRequest("GET", "/", nil)
@@ -49,7 +49,7 @@ func TestHandleIndex_RedirectsToDashboard(t *testing.T) {
 
 func TestStaticFiles_ServesHTMX(t *testing.T) {
 	// Given: Console サーバー
-	s := NewServer(t.TempDir())
+	s := NewServer(t.TempDir(), nil)
 
 	// When: GET /static/htmx.min.js にリクエスト
 	req := httptest.NewRequest("GET", "/static/htmx.min.js", nil)
@@ -67,7 +67,7 @@ func TestStaticFiles_ServesHTMX(t *testing.T) {
 
 func TestStaticFiles_ServesPicoCSS(t *testing.T) {
 	// Given: Console サーバー
-	s := NewServer(t.TempDir())
+	s := NewServer(t.TempDir(), nil)
 
 	// When: GET /static/pico.min.css にリクエスト
 	req := httptest.NewRequest("GET", "/static/pico.min.css", nil)

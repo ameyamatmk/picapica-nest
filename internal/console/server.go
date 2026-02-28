@@ -11,6 +11,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 )
 
 // Port は Web コンソールのリスンポート。
@@ -26,6 +28,7 @@ var templateFS embed.FS
 type Server struct {
 	server        *http.Server
 	workspacePath string
+	resolver      *channellabel.Resolver
 
 	// ページごとにテンプレートセットを保持する。
 	// "content" 定義の衝突を避けるため、layout + ページ固有テンプレートを組み合わせる。
@@ -39,9 +42,11 @@ type Server struct {
 
 // NewServer は新しい Web Console サーバーを作成する。
 // workspacePath は PicoClaw ワークスペースのパス。
-func NewServer(workspacePath string) *Server {
+// resolver は nil でもよい（その場合フォールバック表示）。
+func NewServer(workspacePath string, resolver *channellabel.Resolver) *Server {
 	s := &Server{
 		workspacePath: workspacePath,
+		resolver:      resolver,
 	}
 
 	funcMap := template.FuncMap{

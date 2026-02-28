@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ameyamatmk/picapica-nest/internal/applog"
+	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 	"github.com/ameyamatmk/picapica-nest/internal/console"
 	"github.com/ameyamatmk/picapica-nest/internal/logging"
 	"github.com/ameyamatmk/picapica-nest/internal/provider"
@@ -106,8 +107,23 @@ func cmdServe() error {
 		}
 	}()
 
+	// チャンネルラベル解決の初期化
+	labelStorePath := filepath.Join(cfg.WorkspacePath(), "channel_labels.json")
+	labelStore, err := channellabel.NewStore(labelStorePath)
+	if err != nil {
+		slog.Warn("failed to load channel label store, starting with empty cache",
+			"error", err, "path", labelStorePath)
+		labelStore, _ = channellabel.NewStore(filepath.Join(os.TempDir(), "channel_labels_fallback.json"))
+	}
+
+	var labelResolver *channellabel.Resolver
+	if cfg.Channels.Discord.Enabled && cfg.Channels.Discord.Token != "" {
+		labelResolver = channellabel.NewResolver(cfg.Channels.Discord.Token, labelStore)
+		slog.Info("channel label resolver configured", "component", "channellabel")
+	}
+
 	// Console server をバックグラウンドで起動
-	consoleServer := console.NewServer(cfg.WorkspacePath())
+	consoleServer := console.NewServer(cfg.WorkspacePath(), labelResolver)
 	go func() {
 		if err := consoleServer.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("console server error", "error", err)
