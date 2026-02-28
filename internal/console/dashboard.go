@@ -178,7 +178,7 @@ func readReportPreview(workspacePath, tab, fileName string) (string, error) {
 
 // buildUsageSummary は usage.jsonl から当日と直近7日間のサマリを構築する。
 func buildUsageSummary(workspacePath string) (*usageSummary, error) {
-	days, err := loadUsage(workspacePath)
+	days, err := loadUsage(workspacePath, nil)
 	if err != nil {
 		return nil, err
 	}

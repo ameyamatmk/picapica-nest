@@ -1,12 +1,15 @@
 package console
 
 import (
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ameyamatmk/picapica-nest/internal/pricing"
 )
 
 func TestLoadUsage_AggregatesByDay(t *testing.T) {
@@ -19,8 +22,8 @@ func TestLoadUsage_AggregatesByDay(t *testing.T) {
 	}, "\n")
 	os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(records), 0o644)
 
-	// When: loadUsage を呼ぶ
-	days, err := loadUsage(dir)
+	// When: loadUsage を呼ぶ（pricer nil）
+	days, err := loadUsage(dir, nil)
 
 	// Then: 2日分の集計結果が降順で返る
 	if err != nil {
@@ -54,7 +57,7 @@ func TestLoadUsage_FileNotFound(t *testing.T) {
 	dir := t.TempDir()
 
 	// When: loadUsage を呼ぶ
-	days, err := loadUsage(dir)
+	days, err := loadUsage(dir, nil)
 
 	// Then: エラーなしで nil
 	if err != nil {
@@ -77,7 +80,7 @@ func TestLoadUsage_SkipsInvalidLines(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(records), 0o644)
 
 	// When: loadUsage を呼ぶ
-	days, err := loadUsage(dir)
+	days, err := loadUsage(dir, nil)
 
 	// Then: 有効なレコードのみ集計される
 	if err != nil {
@@ -101,7 +104,7 @@ func TestLoadUsage_CountsErrors(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(records), 0o644)
 
 	// When: loadUsage を呼ぶ
-	days, err := loadUsage(dir)
+	days, err := loadUsage(dir, nil)
 
 	// Then: エラー数が集計される
 	if err != nil {
@@ -109,6 +112,41 @@ func TestLoadUsage_CountsErrors(t *testing.T) {
 	}
 	if days[0].ErrorCount != 1 {
 		t.Errorf("expected 1 error, got %d", days[0].ErrorCount)
+	}
+}
+
+func TestLoadUsage_WithPricer(t *testing.T) {
+	// Given: claude-haiku-4-5 のコストテーブルを持つ pricer と usage データ
+	dir := t.TempDir()
+	pricingPath := filepath.Join(dir, "pricing.json")
+	os.WriteFile(pricingPath, []byte(`{
+		"cost_table": {
+			"claude-haiku-4-5": {"input_per_mtok": 0.80, "output_per_mtok": 4.00}
+		}
+	}`), 0o644)
+
+	pricer, err := pricing.NewPricer(pricingPath)
+	if err != nil {
+		t.Fatalf("failed to create pricer: %v", err)
+	}
+
+	// 1M prompt + 500K completion = $0.80 + $2.00 = $2.80
+	records := `{"ts":"2026-02-28T09:00:00Z","model":"claude-haiku-4-5-20250514","prompt_tokens":1000000,"completion_tokens":500000,"total_tokens":1500000,"latency_ms":300}`
+	os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(records), 0o644)
+
+	// When: loadUsage を pricer 付きで呼ぶ
+	days, err := loadUsage(dir, pricer)
+
+	// Then: CostUSD が計算される
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(days) != 1 {
+		t.Fatalf("expected 1 day, got %d", len(days))
+	}
+	expected := 2.80
+	if math.Abs(days[0].CostUSD-expected) > 0.001 {
+		t.Errorf("expected CostUSD=%.4f, got %.4f", expected, days[0].CostUSD)
 	}
 }
 
@@ -138,7 +176,7 @@ func TestHandleUsage_ReturnsHTML(t *testing.T) {
 	records := `{"ts":"2026-02-28T09:00:00Z","model":"claude","prompt_tokens":100,"completion_tokens":50,"total_tokens":150,"latency_ms":300}`
 	os.WriteFile(filepath.Join(dir, "usage.jsonl"), []byte(records), 0o644)
 
-	s := NewServer(dir, nil)
+	s := NewServer(dir, nil, nil)
 
 	// When: GET /usage にリクエスト
 	req := httptest.NewRequest("GET", "/usage", nil)
@@ -156,11 +194,15 @@ func TestHandleUsage_ReturnsHTML(t *testing.T) {
 	if !strings.Contains(body, "2026-02-28") {
 		t.Error("expected page to contain date")
 	}
+	// コスト列が表示される
+	if !strings.Contains(body, "コスト (USD)") {
+		t.Error("expected page to contain cost USD column")
+	}
 }
 
 func TestHandleUsage_EmptyData(t *testing.T) {
 	// Given: usage.jsonl が存在しない
-	s := NewServer(t.TempDir(), nil)
+	s := NewServer(t.TempDir(), nil, nil)
 
 	// When: GET /usage にリクエスト
 	req := httptest.NewRequest("GET", "/usage", nil)

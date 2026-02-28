@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/ameyamatmk/picapica-nest/internal/pricing"
 )
 
 // usageRecord は usage.jsonl の1行分。
@@ -33,6 +35,8 @@ type DailyUsage struct {
 	TotalTokens      int
 	ErrorCount       int
 	AvgLatencyMs     int64
+	CostUSD          float64
+	CostJPY          *float64
 }
 
 // usagePeriod は期間選択の選択肢。
@@ -45,9 +49,17 @@ type usagePeriod struct {
 // usageData は Usage 画面のテンプレートデータ。
 type usageData struct {
 	pageData
-	Days    []DailyUsage
-	Error   string
-	Periods []usagePeriod
+	Days         []DailyUsage
+	Error        string
+	Periods      []usagePeriod
+	TotalCostUSD float64
+	TotalCostJPY *float64
+}
+
+// modelTokens はモデル別のトークン数。
+type modelTokens struct {
+	promptTokens     int
+	completionTokens int
 }
 
 // dailyAccumulator は日別集計の中間データ。
@@ -59,6 +71,7 @@ type dailyAccumulator struct {
 	totalTokens      int
 	errorCount       int
 	totalLatencyMs   int64
+	byModel          map[string]*modelTokens
 }
 
 func (a *dailyAccumulator) add(rec usageRecord) {
@@ -70,14 +83,26 @@ func (a *dailyAccumulator) add(rec usageRecord) {
 	if rec.Error != "" {
 		a.errorCount++
 	}
+	if rec.Model != "" {
+		if a.byModel == nil {
+			a.byModel = make(map[string]*modelTokens)
+		}
+		mt, ok := a.byModel[rec.Model]
+		if !ok {
+			mt = &modelTokens{}
+			a.byModel[rec.Model] = mt
+		}
+		mt.promptTokens += rec.PromptTokens
+		mt.completionTokens += rec.CompletionTokens
+	}
 }
 
-func (a *dailyAccumulator) toDailyUsage() DailyUsage {
+func (a *dailyAccumulator) toDailyUsage(pricer *pricing.Pricer) DailyUsage {
 	avg := int64(0)
 	if a.callCount > 0 {
 		avg = a.totalLatencyMs / int64(a.callCount)
 	}
-	return DailyUsage{
+	du := DailyUsage{
 		Date:             a.date,
 		CallCount:        a.callCount,
 		PromptTokens:     a.promptTokens,
@@ -86,6 +111,20 @@ func (a *dailyAccumulator) toDailyUsage() DailyUsage {
 		ErrorCount:       a.errorCount,
 		AvgLatencyMs:     avg,
 	}
+	if pricer != nil {
+		for model, mt := range a.byModel {
+			usd, jpy := pricer.CalcDailyCost(model, mt.promptTokens, mt.completionTokens)
+			du.CostUSD += usd
+			if jpy != nil {
+				if du.CostJPY == nil {
+					v := 0.0
+					du.CostJPY = &v
+				}
+				*du.CostJPY += *jpy
+			}
+		}
+	}
+	return du
 }
 
 // periodOptions は期間選択の選択肢を定義する。
@@ -102,7 +141,7 @@ var periodOptions = []struct {
 
 // handleUsage は Usage 画面をフルページで返す。
 func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
-	days, err := loadUsage(s.workspacePath)
+	days, err := loadUsage(s.workspacePath, s.pricer)
 
 	period := r.URL.Query().Get("period")
 	if period == "" {
@@ -111,6 +150,20 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
 
 	// 期間フィルタリング
 	filtered := filterByPeriod(days, period)
+
+	// 期間合計コスト算出
+	var totalUSD float64
+	var totalJPY *float64
+	for _, d := range filtered {
+		totalUSD += d.CostUSD
+		if d.CostJPY != nil {
+			if totalJPY == nil {
+				v := 0.0
+				totalJPY = &v
+			}
+			*totalJPY += *d.CostJPY
+		}
+	}
 
 	// 期間選択タブ用データ
 	periods := make([]usagePeriod, len(periodOptions))
@@ -127,8 +180,10 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
 			Title:  "Usage",
 			Active: "usage",
 		},
-		Days:    filtered,
-		Periods: periods,
+		Days:         filtered,
+		Periods:      periods,
+		TotalCostUSD: totalUSD,
+		TotalCostJPY: totalJPY,
 	}
 	if err != nil {
 		data.Error = err.Error()
@@ -165,7 +220,8 @@ func filterByPeriod(days []DailyUsage, period string) []DailyUsage {
 }
 
 // loadUsage は usage.jsonl を読み込み、日別に集計して降順で返す。
-func loadUsage(workspacePath string) ([]DailyUsage, error) {
+// pricer が nil の場合、コストは 0 になる。
+func loadUsage(workspacePath string, pricer *pricing.Pricer) ([]DailyUsage, error) {
 	usagePath := filepath.Join(workspacePath, "usage.jsonl")
 	f, err := os.Open(usagePath)
 	if err != nil {
@@ -206,7 +262,7 @@ func loadUsage(workspacePath string) ([]DailyUsage, error) {
 
 	days := make([]DailyUsage, 0, len(dayMap))
 	for _, acc := range dayMap {
-		days = append(days, acc.toDailyUsage())
+		days = append(days, acc.toDailyUsage(pricer))
 	}
 	slices.SortFunc(days, func(a, b DailyUsage) int {
 		return strings.Compare(b.Date, a.Date)
