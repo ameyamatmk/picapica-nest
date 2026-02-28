@@ -40,15 +40,19 @@ func NewServer(workspacePath string) *Server {
 		workspacePath: workspacePath,
 	}
 
+	funcMap := template.FuncMap{
+		"comma": formatComma,
+	}
+
 	s.distillTmpl = template.Must(
-		template.New("").ParseFS(templateFS,
+		template.New("").Funcs(funcMap).ParseFS(templateFS,
 			"templates/layout.html",
 			"templates/distill.html",
 			"templates/distill_content.html",
 		),
 	)
 	s.usageTmpl = template.Must(
-		template.New("").ParseFS(templateFS,
+		template.New("").Funcs(funcMap).ParseFS(templateFS,
 			"templates/layout.html",
 			"templates/usage.html",
 		),
@@ -93,4 +97,20 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 type pageData struct {
 	Title  string
 	Active string
+}
+
+// formatComma は数値をコンマ区切りの文字列に変換する。
+func formatComma(n any) string {
+	s := fmt.Sprintf("%d", n)
+	if len(s) <= 3 {
+		return s
+	}
+	var result []byte
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			result = append(result, ',')
+		}
+		result = append(result, byte(c))
+	}
+	return string(result)
 }

@@ -7,6 +7,28 @@ import (
 	"testing"
 )
 
+func TestFormatComma(t *testing.T) {
+	tests := []struct {
+		input    any
+		expected string
+	}{
+		{0, "0"},
+		{999, "999"},
+		{1000, "1,000"},
+		{12345, "12,345"},
+		{1234567, "1,234,567"},
+		{int64(38534), "38,534"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.expected, func(t *testing.T) {
+			got := formatComma(tt.input)
+			if got != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
 func TestHandleIndex_RedirectsToDistill(t *testing.T) {
 	// Given: Console サーバー
 	s := NewServer(t.TempDir())

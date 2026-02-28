@@ -89,7 +89,11 @@ func (s *Server) buildDistillData(tab, file string) distillData {
 	}
 }
 
+// maxReportFiles はレポートリストの最大表示件数。
+const maxReportFiles = 30
+
 // listReports は指定タブのレポートファイル一覧を降順で返す。
+// 最大 maxReportFiles 件まで返す。
 func listReports(workspacePath, tab string) ([]ReportFile, error) {
 	dir := reportDir(workspacePath, tab)
 	entries, err := os.ReadDir(dir)
@@ -115,6 +119,9 @@ func listReports(workspacePath, tab string) ([]ReportFile, error) {
 	slices.SortFunc(files, func(a, b ReportFile) int {
 		return strings.Compare(b.Name, a.Name)
 	})
+	if len(files) > maxReportFiles {
+		files = files[:maxReportFiles]
+	}
 	return files, nil
 }
 

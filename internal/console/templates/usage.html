@@ -22,12 +22,12 @@
         {{range .Days}}
         <tr>
             <td>{{.Date}}</td>
-            <td>{{.CallCount}}</td>
-            <td>{{.PromptTokens}}</td>
-            <td>{{.CompletionTokens}}</td>
-            <td>{{.TotalTokens}}</td>
-            <td>{{.ErrorCount}}</td>
-            <td>{{.AvgLatencyMs}}ms</td>
+            <td class="num">{{comma .CallCount}}</td>
+            <td class="num">{{comma .PromptTokens}}</td>
+            <td class="num">{{comma .CompletionTokens}}</td>
+            <td class="num">{{comma .TotalTokens}}</td>
+            <td class="num">{{.ErrorCount}}</td>
+            <td class="num">{{comma .AvgLatencyMs}}ms</td>
         </tr>
         {{end}}
     </tbody>
