@@ -54,7 +54,7 @@ func cmdServe() error {
 	defer logCloser.Close()
 
 	// 2. Provider 作成（Decorator chain: PromptRewrite → Logging → Inner）
-	inner, err := providers.CreateProvider(cfg)
+	inner, _, err := providers.CreateProvider(cfg)
 	if err != nil {
 		return fmt.Errorf("provider creation error: %w", err)
 	}
@@ -78,7 +78,7 @@ func cmdServe() error {
 	agentLoop := agent.NewAgentLoop(cfg, agentBus, llmProvider)
 
 	// 6. Channel Manager 作成（channelBus を使用）
-	channelManager, err := channels.NewManager(cfg, channelBus)
+	channelManager, err := channels.NewManager(cfg, channelBus, nil)
 	if err != nil {
 		return fmt.Errorf("channel manager creation error: %w", err)
 	}

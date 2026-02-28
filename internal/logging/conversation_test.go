@@ -25,7 +25,7 @@ func TestConversationLogger_InboundMessage(t *testing.T) {
 	logger.Run(ctx)
 
 	// When: channelBus に inbound メッセージを publish する
-	channelBus.PublishInbound(bus.InboundMessage{
+	channelBus.PublishInbound(ctx, bus.InboundMessage{
 		Channel:  "discord",
 		SenderID: "user#1234",
 		ChatID:   "chat-001",
@@ -92,7 +92,7 @@ func TestConversationLogger_OutboundMessage(t *testing.T) {
 	logger.Run(ctx)
 
 	// When: agentBus に outbound メッセージを publish する
-	agentBus.PublishOutbound(bus.OutboundMessage{
+	agentBus.PublishOutbound(ctx, bus.OutboundMessage{
 		Channel: "discord",
 		ChatID:  "chat-001",
 		Content: "Hi there!",
@@ -154,7 +154,7 @@ func TestConversationLogger_InternalChannelNotLogged(t *testing.T) {
 	logger.Run(ctx)
 
 	// When: system チャンネルのメッセージを送信する
-	channelBus.PublishInbound(bus.InboundMessage{
+	channelBus.PublishInbound(ctx, bus.InboundMessage{
 		Channel:  "system",
 		SenderID: "cron",
 		ChatID:   "heartbeat",
@@ -191,7 +191,7 @@ func TestConversationLogger_MultipleMessages(t *testing.T) {
 	logger.Run(ctx)
 
 	// When: 複数メッセージを送信する
-	channelBus.PublishInbound(bus.InboundMessage{
+	channelBus.PublishInbound(ctx, bus.InboundMessage{
 		Channel:  "discord",
 		SenderID: "user#1234",
 		ChatID:   "chat-001",
@@ -199,14 +199,14 @@ func TestConversationLogger_MultipleMessages(t *testing.T) {
 	})
 	agentBus.ConsumeInbound(ctx)
 
-	agentBus.PublishOutbound(bus.OutboundMessage{
+	agentBus.PublishOutbound(ctx, bus.OutboundMessage{
 		Channel: "discord",
 		ChatID:  "chat-001",
 		Content: "first response",
 	})
 	channelBus.SubscribeOutbound(ctx)
 
-	channelBus.PublishInbound(bus.InboundMessage{
+	channelBus.PublishInbound(ctx, bus.InboundMessage{
 		Channel:  "discord",
 		SenderID: "user#1234",
 		ChatID:   "chat-001",
