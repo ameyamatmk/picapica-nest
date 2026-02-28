@@ -124,6 +124,78 @@ func TestCollectLogs_NoMatchingDate(t *testing.T) {
 	}
 }
 
+func TestCollectLogs_4AMBoundary(t *testing.T) {
+	// Given: 深夜〜早朝のログ（4時境界をまたぐ）
+	logsDir := t.TempDir()
+	date := time.Date(2026, 2, 27, 0, 0, 0, 0, time.UTC)
+
+	chDir := filepath.Join(logsDir, "discord_chat-001")
+	os.MkdirAll(chDir, 0o755)
+
+	// 2/27 のファイル: 03:00 JST（=2/26 18:00 UTC）は4時前なので除外される
+	// 2/27 のファイル: 10:00 JST（=2/27 01:00 UTC）は4時以降なので含まれる
+	os.WriteFile(filepath.Join(chDir, "2026-02-27.jsonl"), []byte(
+		`{"ts":"2026-02-26T18:00:00Z","dir":"in","sender":"user","content":"before 4am excluded"}
+{"ts":"2026-02-27T01:00:00Z","dir":"in","sender":"user","content":"after 4am included"}
+`), 0o644)
+
+	// 2/28 のファイル: 02:00 JST（=2/27 17:00 UTC）は翌日4時前なので含まれる
+	// 2/28 のファイル: 05:00 JST（=2/27 20:00 UTC）は翌日4時以降なので除外
+	os.WriteFile(filepath.Join(chDir, "2026-02-28.jsonl"), []byte(
+		`{"ts":"2026-02-27T17:00:00Z","dir":"in","sender":"user","content":"late night included"}
+{"ts":"2026-02-27T20:00:00Z","dir":"in","sender":"user","content":"next day excluded"}
+`), 0o644)
+
+	// When: 2/27 のログを収集
+	entries, err := CollectLogs(logsDir, date)
+
+	// Then: 4AM 境界内の2エントリのみ収集される
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+	if entries[0].Content != "after 4am included" {
+		t.Errorf("entry[0]: expected 'after 4am included', got %q", entries[0].Content)
+	}
+	if entries[1].Content != "late night included" {
+		t.Errorf("entry[1]: expected 'late night included', got %q", entries[1].Content)
+	}
+}
+
+func TestCollectLogs_4AMBoundary_ExactBoundary(t *testing.T) {
+	// Given: ちょうど4時のエントリ
+	logsDir := t.TempDir()
+	date := time.Date(2026, 2, 27, 0, 0, 0, 0, time.UTC)
+
+	chDir := filepath.Join(logsDir, "discord_chat-001")
+	os.MkdirAll(chDir, 0o755)
+
+	// 2/27 04:00 JST = 2/26 19:00 UTC → 含まれる（start <= ts）
+	// 2/28 04:00 JST = 2/27 19:00 UTC → 除外される（ts < end）
+	os.WriteFile(filepath.Join(chDir, "2026-02-27.jsonl"), []byte(
+		`{"ts":"2026-02-26T19:00:00Z","dir":"in","sender":"user","content":"exactly 4am start"}
+`), 0o644)
+	os.WriteFile(filepath.Join(chDir, "2026-02-28.jsonl"), []byte(
+		`{"ts":"2026-02-27T19:00:00Z","dir":"in","sender":"user","content":"exactly 4am end"}
+`), 0o644)
+
+	// When: 2/27 のログを収集
+	entries, err := CollectLogs(logsDir, date)
+
+	// Then: 開始時刻は含まれ、終了時刻は除外される
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry (start inclusive, end exclusive), got %d", len(entries))
+	}
+	if entries[0].Content != "exactly 4am start" {
+		t.Errorf("expected start boundary entry, got %q", entries[0].Content)
+	}
+}
+
 func TestFormatTranscript_InboundAndOutbound(t *testing.T) {
 	// Given: in と out のエントリ
 	entries := []logging.LogEntry{
