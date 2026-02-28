@@ -253,7 +253,7 @@ func loadConversationMessages(workspacePath, channel, fileName string) ([]chatMe
 		messages = append(messages, chatMessage{
 			Time:      formatMessageTime(entry.Timestamp),
 			Direction: entry.Direction,
-			Sender:    entry.Sender,
+			Sender:    senderByDirection(entry.Direction),
 			Content:   entry.Content,
 		})
 	}
@@ -265,6 +265,14 @@ func loadConversationMessages(workspacePath, channel, fileName string) ([]chatMe
 	slices.Reverse(messages)
 
 	return messages, nil
+}
+
+// senderByDirection は direction から表示名を返す。
+func senderByDirection(dir string) string {
+	if dir == "out" {
+		return "Haruka"
+	}
+	return "ameyama"
 }
 
 // formatMessageTime はタイムスタンプから時刻部分（HH:MM）を抽出する。

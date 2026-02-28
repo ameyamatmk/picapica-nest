@@ -106,7 +106,7 @@ func TestHandleConversationMessages_WithData(t *testing.T) {
 	if !strings.Contains(body, "10:30") {
 		t.Error("expected fragment to contain message time")
 	}
-	if !strings.Contains(body, "user1") {
+	if !strings.Contains(body, "ameyama") {
 		t.Error("expected fragment to contain sender name")
 	}
 
@@ -289,6 +289,25 @@ func TestFormatMessageTime(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			got := formatMessageTime(tt.input)
+			if got != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
+func TestSenderByDirection(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"in", "ameyama"},
+		{"out", "Haruka"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := senderByDirection(tt.input)
 			if got != tt.expected {
 				t.Errorf("expected %q, got %q", tt.expected, got)
 			}
