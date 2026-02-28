@@ -170,6 +170,250 @@ func TestHandleDistill_ReturnsHTML(t *testing.T) {
 	}
 }
 
+func TestBuildCalendar_February2026(t *testing.T) {
+	// Given: 2026年2月（28日間、2/1は日曜）
+	reportDates := map[string]bool{
+		"2026-02-23": true,
+		"2026-02-27": true,
+		"2026-02-28": true,
+	}
+
+	// When: buildCalendar を呼ぶ
+	cal := buildCalendar(2026, 2, reportDates, "2026-02-27.md")
+
+	// Then: 正しい年月
+	if cal.Year != 2026 || cal.Month != 2 {
+		t.Errorf("expected 2026/2, got %d/%d", cal.Year, cal.Month)
+	}
+	if cal.MonthName != "2026年2月" {
+		t.Errorf("expected '2026年2月', got %q", cal.MonthName)
+	}
+
+	// Then: レポートがある日と選択状態を確認
+	found23 := false
+	found27Selected := false
+	for _, week := range cal.Weeks {
+		for _, day := range week {
+			if day.Day == 23 && day.HasReport {
+				found23 = true
+			}
+			if day.Day == 27 && day.Selected {
+				found27Selected = true
+			}
+		}
+	}
+	if !found23 {
+		t.Error("expected day 23 to have HasReport=true")
+	}
+	if !found27Selected {
+		t.Error("expected day 27 to have Selected=true")
+	}
+
+	// Then: 前月・翌月
+	if cal.PrevYear != 2026 || cal.PrevMonth != 1 {
+		t.Errorf("expected prev 2026/1, got %d/%d", cal.PrevYear, cal.PrevMonth)
+	}
+	if cal.NextYear != 2026 || cal.NextMonth != 3 {
+		t.Errorf("expected next 2026/3, got %d/%d", cal.NextYear, cal.NextMonth)
+	}
+}
+
+func TestBuildCalendar_YearBoundary(t *testing.T) {
+	// Given: 2026年1月 → 前月は2025年12月
+	cal := buildCalendar(2026, 1, nil, "")
+
+	// Then
+	if cal.PrevYear != 2025 || cal.PrevMonth != 12 {
+		t.Errorf("expected prev 2025/12, got %d/%d", cal.PrevYear, cal.PrevMonth)
+	}
+}
+
+func TestBuildCalendar_December_NextIsJanuary(t *testing.T) {
+	// Given: 2025年12月 → 翌月は2026年1月
+	cal := buildCalendar(2025, 12, nil, "")
+
+	// Then
+	if cal.NextYear != 2026 || cal.NextMonth != 1 {
+		t.Errorf("expected next 2026/1, got %d/%d", cal.NextYear, cal.NextMonth)
+	}
+}
+
+func TestBuildCalendar_EmptyReportDates(t *testing.T) {
+	// Given: レポートなし
+	cal := buildCalendar(2026, 2, nil, "")
+
+	// Then: 全セルの HasReport が false
+	for _, week := range cal.Weeks {
+		for _, day := range week {
+			if day.HasReport {
+				t.Errorf("expected no HasReport, but day %d has it", day.Day)
+			}
+		}
+	}
+}
+
+func TestListReportDates_ReturnsAllDates(t *testing.T) {
+	// Given: 日次レポートが3つ存在する
+	dir := t.TempDir()
+	dailyDir := filepath.Join(dir, "memory", "daily")
+	os.MkdirAll(dailyDir, 0o755)
+	for _, name := range []string{"2026-01-15.md", "2026-02-27.md", "2026-02-28.md"} {
+		os.WriteFile(filepath.Join(dailyDir, name), []byte("# test"), 0o644)
+	}
+
+	// When: listReportDates を呼ぶ
+	dates, err := listReportDates(dir)
+
+	// Then: 3日分の日付が返る
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(dates) != 3 {
+		t.Fatalf("expected 3 dates, got %d", len(dates))
+	}
+	if !dates["2026-01-15"] {
+		t.Error("expected 2026-01-15 in dates")
+	}
+}
+
+func TestListReportDates_EmptyDirectory(t *testing.T) {
+	// Given: ディレクトリが存在しない
+	dir := filepath.Join(t.TempDir(), "nonexistent")
+
+	// When
+	dates, err := listReportDates(dir)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if dates != nil {
+		t.Errorf("expected nil, got %v", dates)
+	}
+}
+
+func TestFindLatestReportInMonth_Found(t *testing.T) {
+	dates := map[string]bool{
+		"2026-02-15": true,
+		"2026-02-20": true,
+		"2026-02-28": true,
+	}
+
+	got := findLatestReportInMonth(2026, 2, dates)
+	if got != "2026-02-28.md" {
+		t.Errorf("expected '2026-02-28.md', got %q", got)
+	}
+}
+
+func TestFindLatestReportInMonth_NotFound(t *testing.T) {
+	dates := map[string]bool{
+		"2026-01-15": true,
+	}
+
+	got := findLatestReportInMonth(2026, 2, dates)
+	if got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+func TestParseYearMonth_Valid(t *testing.T) {
+	req := httptest.NewRequest("GET", "/distill/content?year=2026&month=2", nil)
+	year, month := parseYearMonth(req)
+	if year != 2026 || month != 2 {
+		t.Errorf("expected 2026/2, got %d/%d", year, month)
+	}
+}
+
+func TestParseYearMonth_Missing(t *testing.T) {
+	req := httptest.NewRequest("GET", "/distill/content", nil)
+	year, month := parseYearMonth(req)
+	if year != 0 || month != 0 {
+		t.Errorf("expected 0/0, got %d/%d", year, month)
+	}
+}
+
+func TestParseYearMonth_Invalid(t *testing.T) {
+	req := httptest.NewRequest("GET", "/distill/content?year=abc&month=2", nil)
+	year, month := parseYearMonth(req)
+	if year != 0 || month != 0 {
+		t.Errorf("expected 0/0, got %d/%d", year, month)
+	}
+}
+
+func TestParseYearMonth_OutOfRange(t *testing.T) {
+	req := httptest.NewRequest("GET", "/distill/content?year=2026&month=13", nil)
+	year, month := parseYearMonth(req)
+	if year != 0 || month != 0 {
+		t.Errorf("expected 0/0 for out of range month, got %d/%d", year, month)
+	}
+}
+
+func TestHandleDistill_DailyShowsCalendar(t *testing.T) {
+	// Given: 日次レポートが存在するワークスペース
+	dir := t.TempDir()
+	dailyDir := filepath.Join(dir, "memory", "daily")
+	os.MkdirAll(dailyDir, 0o755)
+	os.WriteFile(filepath.Join(dailyDir, "2026-02-28.md"), []byte("# Daily Report"), 0o644)
+
+	s := NewServer(dir)
+
+	// When: GET /distill?tab=daily
+	req := httptest.NewRequest("GET", "/distill?tab=daily", nil)
+	rec := httptest.NewRecorder()
+	s.server.Handler.ServeHTTP(rec, req)
+
+	// Then: カレンダーUIが含まれる
+	body := rec.Body.String()
+	if !strings.Contains(body, "calendar-grid") {
+		t.Error("expected calendar grid in daily tab")
+	}
+}
+
+func TestHandleDistillContent_MonthNavigation(t *testing.T) {
+	// Given: 1月にレポートがあるワークスペース
+	dir := t.TempDir()
+	dailyDir := filepath.Join(dir, "memory", "daily")
+	os.MkdirAll(dailyDir, 0o755)
+	os.WriteFile(filepath.Join(dailyDir, "2026-01-15.md"), []byte("# Jan"), 0o644)
+
+	s := NewServer(dir)
+
+	// When: 1月のカレンダーをリクエスト
+	req := httptest.NewRequest("GET", "/distill/content?tab=daily&year=2026&month=1", nil)
+	rec := httptest.NewRecorder()
+	s.server.Handler.ServeHTTP(rec, req)
+
+	// Then: 1月のカレンダーが表示される
+	body := rec.Body.String()
+	if !strings.Contains(body, "2026年1月") {
+		t.Error("expected '2026年1月' in response")
+	}
+}
+
+func TestHandleDistillContent_WeeklyStillShowsList(t *testing.T) {
+	// Given: 週次レポートが存在するワークスペース
+	dir := t.TempDir()
+	weeklyDir := filepath.Join(dir, "memory", "weekly")
+	os.MkdirAll(weeklyDir, 0o755)
+	os.WriteFile(filepath.Join(weeklyDir, "2026-02-W09.md"), []byte("# Weekly"), 0o644)
+
+	s := NewServer(dir)
+
+	// When: GET /distill/content?tab=weekly
+	req := httptest.NewRequest("GET", "/distill/content?tab=weekly", nil)
+	rec := httptest.NewRecorder()
+	s.server.Handler.ServeHTTP(rec, req)
+
+	// Then: リスト表示（カレンダーなし）
+	body := rec.Body.String()
+	if strings.Contains(body, "calendar-grid") {
+		t.Error("weekly tab should not contain calendar")
+	}
+	if !strings.Contains(body, "Weekly") {
+		t.Error("expected weekly report content")
+	}
+}
+
 func TestHandleDistillContent_Fragment(t *testing.T) {
 	// Given: レポートファイルが存在するワークスペース
 	dir := t.TempDir()

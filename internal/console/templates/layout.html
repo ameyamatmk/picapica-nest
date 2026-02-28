@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/static/pico.min.css">
     <script src="/static/htmx.min.js"></script>
     <style>
-        .report-layout { display: grid; grid-template-columns: 200px 1fr; gap: 1rem; }
+        .report-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; }
         .report-list { max-height: 70vh; overflow-y: auto; }
         .report-list a { display: block; padding: 0.25rem 0.5rem; text-decoration: none; font-size: 0.9rem; }
         .report-list a[aria-current="page"] { font-weight: bold; }
@@ -29,6 +29,57 @@
             color: var(--pico-primary-inverse);
         }
         td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .calendar { padding: 0.5rem; }
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .calendar-nav a {
+            text-decoration: none;
+            padding: 0.25rem 0.5rem;
+            color: var(--pico-primary);
+            font-size: 1.2rem;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            text-align: center;
+        }
+        .calendar-header {
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.25rem;
+            color: var(--pico-muted-color);
+        }
+        .calendar-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            border-radius: 0.25rem;
+        }
+        .calendar-cell.empty { visibility: hidden; }
+        .calendar-cell.has-report {
+            background-color: color-mix(in srgb, var(--pico-primary) 15%, transparent);
+            color: var(--pico-primary);
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0;
+            margin: 0;
+            min-width: 0;
+        }
+        .calendar-cell.has-report:hover {
+            background-color: color-mix(in srgb, var(--pico-primary) 30%, transparent);
+        }
+        .calendar-cell.selected {
+            background-color: var(--pico-primary) !important;
+            color: var(--pico-primary-inverse) !important;
+        }
     </style>
 </head>
 <body>
