@@ -3,6 +3,7 @@ package distill
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -36,10 +37,10 @@ func RunDailyWith(ctx context.Context, params DailyParams, distill Distiller) er
 		return fmt.Errorf("failed to collect logs: %w", err)
 	}
 	if len(entries) == 0 {
-		fmt.Printf("No logs found for %s, skipping.\n", dateStr)
+		slog.Info("no logs found, skipping", "component", "distill", "date", dateStr)
 		return nil
 	}
-	fmt.Printf("Collected %d log entries for %s\n", len(entries), dateStr)
+	slog.Info("collected log entries", "component", "distill", "count", len(entries), "date", dateStr)
 
 	// 2. transcript 生成
 	transcript := FormatTranscript(entries)
@@ -54,7 +55,7 @@ func RunDailyWith(ctx context.Context, params DailyParams, distill Distiller) er
 	}
 
 	// 4. LLM 蒸留
-	fmt.Printf("Running LLM distillation...\n")
+	slog.Info("running LLM distillation", "component", "distill")
 	result, err := distill(ctx, prompt, transcript)
 	if err != nil {
 		return fmt.Errorf("LLM distillation failed: %w", err)
@@ -66,7 +67,7 @@ func RunDailyWith(ctx context.Context, params DailyParams, distill Distiller) er
 	}
 
 	outputPath := filepath.Join(params.OutputDir, dateStr+".md")
-	fmt.Printf("Daily report saved to %s\n", outputPath)
+	slog.Info("daily report saved", "component", "distill", "path", outputPath)
 	return nil
 }
 

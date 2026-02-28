@@ -3,6 +3,7 @@ package distill
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -46,10 +47,10 @@ func RunMonthlyWith(ctx context.Context, params MonthlyParams, distill Distiller
 
 	// 3. 両方0件ならスキップ
 	if weeklyCount == 0 && dailyCount == 0 {
-		fmt.Printf("No reports found for %s, skipping.\n", monthLabel)
+		slog.Info("no reports found, skipping", "component", "distill", "month", monthLabel)
 		return nil
 	}
-	fmt.Printf("Collected %d weekly + %d daily reports for %s\n", weeklyCount, dailyCount, monthLabel)
+	slog.Info("collected reports", "component", "distill", "weekly_count", weeklyCount, "daily_count", dailyCount, "month", monthLabel)
 
 	// 4. stdin 組み立て（週次 + 区切り + 日次）
 	stdin := buildMonthlyStdin(weeklyCombined, weeklyCount, dailyCombined, dailyCount)
@@ -63,7 +64,7 @@ func RunMonthlyWith(ctx context.Context, params MonthlyParams, distill Distiller
 	}
 
 	// 6. LLM 蒸留
-	fmt.Printf("Running LLM distillation...\n")
+	slog.Info("running LLM distillation", "component", "distill")
 	result, err := distill(ctx, prompt, stdin)
 	if err != nil {
 		return fmt.Errorf("LLM distillation failed: %w", err)
@@ -76,7 +77,7 @@ func RunMonthlyWith(ctx context.Context, params MonthlyParams, distill Distiller
 	}
 
 	outputPath := filepath.Join(params.OutputDir, fileName)
-	fmt.Printf("Monthly report saved to %s\n", outputPath)
+	slog.Info("monthly report saved", "component", "distill", "path", outputPath)
 	return nil
 }
 

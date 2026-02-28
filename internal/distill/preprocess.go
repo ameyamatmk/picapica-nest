@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -66,7 +67,7 @@ func CollectLogs(logsDir string, date time.Time) ([]logging.LogEntry, error) {
 				if os.IsNotExist(err) {
 					continue
 				}
-				fmt.Fprintf(os.Stderr, "warning: failed to read %s: %v\n", filePath, err)
+				slog.Warn("failed to read log file", "component", "distill", "path", filePath, "error", err)
 				continue
 			}
 			allEntries = append(allEntries, logEntries...)
@@ -115,7 +116,7 @@ func readJSONL(path string) ([]logging.LogEntry, error) {
 		}
 		var entry logging.LogEntry
 		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			fmt.Fprintf(os.Stderr, "warning: %s line %d: invalid JSON, skipping: %v\n", path, lineNum, err)
+			slog.Warn("invalid JSON in log file, skipping", "component", "distill", "path", path, "line", lineNum, "error", err)
 			continue
 		}
 		entries = append(entries, entry)

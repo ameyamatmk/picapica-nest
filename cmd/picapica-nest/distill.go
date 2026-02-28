@@ -4,9 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"time"
 
+	"github.com/ameyamatmk/picapica-nest/internal/applog"
 	"github.com/ameyamatmk/picapica-nest/internal/distill"
 	"github.com/sipeed/picoclaw/pkg/config"
 )
@@ -40,6 +42,12 @@ func cmdDistillDaily(args []string) error {
 		return fmt.Errorf("config load error: %w", err)
 	}
 
+	logCloser, err := applog.Setup(cfg.WorkspacePath())
+	if err != nil {
+		return fmt.Errorf("failed to setup logging: %w", err)
+	}
+	defer logCloser.Close()
+
 	var targetDate time.Time
 	if *dateStr == "" {
 		targetDate = time.Now().AddDate(0, 0, -1)
@@ -58,7 +66,7 @@ func cmdDistillDaily(args []string) error {
 		PromptPath: filepath.Join(workspace, "prompts", "daily_distill.md"),
 	}
 
-	fmt.Printf("Running daily distillation for %s\n", targetDate.Format("2006-01-02"))
+	slog.Info("running daily distillation", "component", "distill", "date", targetDate.Format("2006-01-02"))
 	return distill.RunDaily(context.Background(), params)
 }
 
@@ -73,6 +81,12 @@ func cmdDistillWeekly(args []string) error {
 	if err != nil {
 		return fmt.Errorf("config load error: %w", err)
 	}
+
+	logCloser, err := applog.Setup(cfg.WorkspacePath())
+	if err != nil {
+		return fmt.Errorf("failed to setup logging: %w", err)
+	}
+	defer logCloser.Close()
 
 	var year, week int
 	if *weekStr == "" {
@@ -101,7 +115,7 @@ func cmdDistillWeekly(args []string) error {
 		PromptPath: filepath.Join(workspace, "prompts", "weekly_distill.md"),
 	}
 
-	fmt.Printf("Running weekly distillation for %d-W%02d\n", year, week)
+	slog.Info("running weekly distillation", "component", "distill", "week", fmt.Sprintf("%d-W%02d", year, week))
 	return distill.RunWeekly(context.Background(), params)
 }
 
@@ -116,6 +130,12 @@ func cmdDistillMonthly(args []string) error {
 	if err != nil {
 		return fmt.Errorf("config load error: %w", err)
 	}
+
+	logCloser, err := applog.Setup(cfg.WorkspacePath())
+	if err != nil {
+		return fmt.Errorf("failed to setup logging: %w", err)
+	}
+	defer logCloser.Close()
 
 	var year, month int
 	if *monthStr == "" {
@@ -144,6 +164,6 @@ func cmdDistillMonthly(args []string) error {
 		PromptPath: filepath.Join(workspace, "prompts", "monthly_distill.md"),
 	}
 
-	fmt.Printf("Running monthly distillation for %d-%02d\n", year, month)
+	slog.Info("running monthly distillation", "component", "distill", "month", fmt.Sprintf("%d-%02d", year, month))
 	return distill.RunMonthly(context.Background(), params)
 }

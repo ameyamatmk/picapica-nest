@@ -3,6 +3,7 @@ package distill
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"time"
@@ -47,10 +48,10 @@ func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) 
 		return fmt.Errorf("failed to collect daily reports: %w", err)
 	}
 	if count == 0 {
-		fmt.Printf("No daily reports found for %s, skipping.\n", weekLabel)
+		slog.Info("no daily reports found, skipping", "component", "distill", "week", weekLabel)
 		return nil
 	}
-	fmt.Printf("Collected %d daily reports for %s\n", count, weekLabel)
+	slog.Info("collected daily reports", "component", "distill", "count", count, "week", weekLabel)
 
 	// 3. プロンプト読み込み
 	period := formatPeriodRange(start, end)
@@ -61,7 +62,7 @@ func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) 
 	}
 
 	// 4. LLM 蒸留
-	fmt.Printf("Running LLM distillation...\n")
+	slog.Info("running LLM distillation", "component", "distill")
 	result, err := distill(ctx, prompt, combined)
 	if err != nil {
 		return fmt.Errorf("LLM distillation failed: %w", err)
@@ -74,7 +75,7 @@ func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) 
 	}
 
 	outputPath := filepath.Join(params.OutputDir, fileName)
-	fmt.Printf("Weekly report saved to %s\n", outputPath)
+	slog.Info("weekly report saved", "component", "distill", "path", outputPath)
 	return nil
 }
 
