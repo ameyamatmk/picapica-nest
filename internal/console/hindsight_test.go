@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestListReports_ReturnsDescendingOrder(t *testing.T) {
@@ -144,11 +145,12 @@ func TestReportDir_TabMapping(t *testing.T) {
 }
 
 func TestHandleHindsight_ReturnsHTML(t *testing.T) {
-	// Given: レポートファイルが存在するワークスペース
+	// Given: 当日のレポートファイルが存在するワークスペース
 	dir := t.TempDir()
 	dailyDir := filepath.Join(dir, "memory", "daily")
 	os.MkdirAll(dailyDir, 0o755)
-	os.WriteFile(filepath.Join(dailyDir, "2026-02-28.md"), []byte("# Test Report"), 0o644)
+	today := time.Now().Format("2006-01-02")
+	os.WriteFile(filepath.Join(dailyDir, today+".md"), []byte("# Test Report"), 0o644)
 
 	s := NewServer(dir)
 

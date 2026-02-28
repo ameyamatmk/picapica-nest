@@ -148,33 +148,10 @@ func listWorkspaceFiles(workspacePath string) ([]workspaceFile, error) {
 	slices.Sort(subDirs)
 
 	for _, dirName := range subDirs {
-		dirPath := filepath.Join(workspacePath, dirName)
-		subEntries, err := os.ReadDir(dirPath)
-		if err != nil {
-			slog.Error("failed to read subdirectory", "component", "console", "dir", dirName, "error", err)
-			continue
-		}
-
-		var subFiles []workspaceFile
-		for _, e := range subEntries {
-			if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
-				continue
-			}
-			subFiles = append(subFiles, workspaceFile{
-				Path:  dirName + "/" + e.Name(),
-				Name:  e.Name(),
-				IsDir: false,
-				Depth: 1,
-			})
-		}
-
+		subFiles := listSubdirFiles(workspacePath, dirName)
 		if len(subFiles) == 0 {
 			continue
 		}
-
-		slices.SortFunc(subFiles, func(a, b workspaceFile) int {
-			return strings.Compare(a.Name, b.Name)
-		})
 
 		// ディレクトリヘッダーを追加
 		files = append(files, workspaceFile{
@@ -187,6 +164,66 @@ func listWorkspaceFiles(workspacePath string) ([]workspaceFile, error) {
 	}
 
 	return files, nil
+}
+
+
+// promptsFileOrder は prompts/ ディレクトリ内のファイル表示順序。
+var promptsFileOrder = []string{
+	"daily_hindsight.md",
+	"weekly_hindsight.md",
+	"monthly_hindsight.md",
+}
+
+// listSubdirFiles はサブディレクトリ内の .md ファイルを返す。
+// prompts/ ディレクトリはハードコードされた順序で返す。
+func listSubdirFiles(workspacePath, dirName string) []workspaceFile {
+	dirPath := filepath.Join(workspacePath, dirName)
+
+	if dirName == "prompts" {
+		return listOrderedFiles(dirPath, dirName, promptsFileOrder)
+	}
+
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		slog.Error("failed to read subdirectory", "component", "console", "dir", dirName, "error", err)
+		return nil
+	}
+
+	var subFiles []workspaceFile
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
+			continue
+		}
+		subFiles = append(subFiles, workspaceFile{
+			Path:  dirName + "/" + e.Name(),
+			Name:  e.Name(),
+			IsDir: false,
+			Depth: 1,
+		})
+	}
+
+	slices.SortFunc(subFiles, func(a, b workspaceFile) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return subFiles
+}
+
+// listOrderedFiles は指定された順序でファイルを返す。存在しないファイルはスキップする。
+func listOrderedFiles(dirPath, dirName string, order []string) []workspaceFile {
+	var files []workspaceFile
+	for _, name := range order {
+		path := filepath.Join(dirPath, name)
+		if _, err := os.Stat(path); err != nil {
+			continue
+		}
+		files = append(files, workspaceFile{
+			Path:  dirName + "/" + name,
+			Name:  name,
+			IsDir: false,
+			Depth: 1,
+		})
+	}
+	return files
 }
 
 // readWorkspaceFile はワークスペース内のファイルを読み込み、Markdown → HTML 変換して返す。
