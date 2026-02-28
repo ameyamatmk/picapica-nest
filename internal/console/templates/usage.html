@@ -1,10 +1,16 @@
 {{define "content"}}
 <h2>API Usage</h2>
+<div class="tab-group">
+    {{range .Periods}}
+    <a href="/usage?period={{.Value}}" {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>
+    {{end}}
+</div>
 {{if .Error}}
 <p role="alert">{{.Error}}</p>
 {{else if not .Days}}
 <p><em>データがありません</em></p>
 {{else}}
+<canvas id="usage-chart" style="max-height: 350px; margin-bottom: 1.5rem;"></canvas>
 <figure>
 <table>
     <thead>
@@ -33,5 +39,69 @@
     </tbody>
 </table>
 </figure>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+(function() {
+    var days = [
+        {{range .Days}}{date:"{{.Date}}",prompt:{{.PromptTokens}},completion:{{.CompletionTokens}},total:{{.TotalTokens}}},
+        {{end}}
+    ].reverse();
+
+    var style = getComputedStyle(document.documentElement);
+    var textColor = style.getPropertyValue('--pico-color').trim();
+    var mutedColor = style.getPropertyValue('--pico-muted-color').trim();
+    var borderColor = style.getPropertyValue('--pico-muted-border-color').trim();
+
+    new Chart(document.getElementById('usage-chart'), {
+        type: 'line',
+        data: {
+            labels: days.map(function(d) { return d.date; }),
+            datasets: [
+                {
+                    label: 'Total Tokens',
+                    data: days.map(function(d) { return d.total; }),
+                    borderColor: style.getPropertyValue('--pico-primary').trim(),
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Prompt Tokens',
+                    data: days.map(function(d) { return d.prompt; }),
+                    borderColor: style.getPropertyValue('--pico-secondary').trim(),
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Completion Tokens',
+                    data: days.map(function(d) { return d.completion; }),
+                    borderColor: '#e67e22',
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: textColor } }
+            },
+            scales: {
+                x: {
+                    ticks: { color: mutedColor },
+                    grid: { color: borderColor }
+                },
+                y: {
+                    ticks: { color: mutedColor },
+                    grid: { color: borderColor }
+                }
+            }
+        }
+    });
+})();
+</script>
 {{end}}
 {{end}}
