@@ -10,11 +10,13 @@ build/
 *.out
 vendor/
 
-# Workspace runtime (logs, usage)
+# Workspace runtime
 workspace/logs/
 workspace/memory/daily/
 workspace/memory/weekly/
 workspace/memory/monthly/
+workspace/sessions/
+workspace/state/
 usage.jsonl
 
 # IDE
@@ -30,6 +32,12 @@ Thumbs.db
 
 # Research notes (not tracked)
 docs/_research/
+
+# Screenshots (browser testing)
+*.png
+
+# Playwright
+.playwright-mcp/
 
 # Environment
 .env
