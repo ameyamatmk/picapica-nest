@@ -1,4 +1,4 @@
-package distill
+package hindsight
 
 import (
 	"context"
@@ -20,7 +20,7 @@ var weekdayJP = [...]string{
 	time.Saturday:  "土",
 }
 
-// WeeklyParams は週次蒸留のパラメータ。
+// WeeklyParams は週次 hindsight のパラメータ。
 type WeeklyParams struct {
 	Year       int
 	Week       int    // ISO 週番号
@@ -29,13 +29,13 @@ type WeeklyParams struct {
 	PromptPath string // プロンプトテンプレートのパス
 }
 
-// RunWeekly は週次蒸留を実行する。
+// RunWeekly は週次 hindsight を実行する。
 func RunWeekly(ctx context.Context, params WeeklyParams) error {
 	return RunWeeklyWith(ctx, params, RunClaude)
 }
 
-// RunWeeklyWith はテスト可能な週次蒸留の内部実装。
-func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) error {
+// RunWeeklyWith はテスト可能な週次 hindsight の内部実装。
+func RunWeeklyWith(ctx context.Context, params WeeklyParams, summarize Summarizer) error {
 	weekLabel := fmt.Sprintf("%d-W%02d", params.Year, params.Week)
 
 	// 1. 週の日付範囲を計算（土曜〜金曜）
@@ -48,10 +48,10 @@ func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) 
 		return fmt.Errorf("failed to collect daily reports: %w", err)
 	}
 	if count == 0 {
-		slog.Info("no daily reports found, skipping", "component", "distill", "week", weekLabel)
+		slog.Info("no daily reports found, skipping", "component", "hindsight", "week", weekLabel)
 		return nil
 	}
-	slog.Info("collected daily reports", "component", "distill", "count", count, "week", weekLabel)
+	slog.Info("collected daily reports", "component", "hindsight", "count", count, "week", weekLabel)
 
 	// 3. プロンプト読み込み
 	period := formatPeriodRange(start, end)
@@ -61,11 +61,11 @@ func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) 
 		return fmt.Errorf("failed to load prompt: %w", err)
 	}
 
-	// 4. LLM 蒸留
-	slog.Info("running LLM distillation", "component", "distill")
-	result, err := distill(ctx, prompt, combined)
+	// 4. LLM summarization
+	slog.Info("running LLM summarization", "component", "hindsight")
+	result, err := summarize(ctx, prompt, combined)
 	if err != nil {
-		return fmt.Errorf("LLM distillation failed: %w", err)
+		return fmt.Errorf("LLM summarization failed: %w", err)
 	}
 
 	// 5. 結果保存
@@ -75,7 +75,7 @@ func RunWeeklyWith(ctx context.Context, params WeeklyParams, distill Distiller) 
 	}
 
 	outputPath := filepath.Join(params.OutputDir, fileName)
-	slog.Info("weekly report saved", "component", "distill", "path", outputPath)
+	slog.Info("weekly report saved", "component", "hindsight", "path", outputPath)
 	return nil
 }
 

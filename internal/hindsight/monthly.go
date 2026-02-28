@@ -1,4 +1,4 @@
-package distill
+package hindsight
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// MonthlyParams は月次蒸留のパラメータ。
+// MonthlyParams は月次 hindsight のパラメータ。
 type MonthlyParams struct {
 	Year       int
 	Month      int    // 1-12
@@ -20,13 +20,13 @@ type MonthlyParams struct {
 	PromptPath string // プロンプトテンプレートのパス
 }
 
-// RunMonthly は月次蒸留を実行する。
+// RunMonthly は月次 hindsight を実行する。
 func RunMonthly(ctx context.Context, params MonthlyParams) error {
 	return RunMonthlyWith(ctx, params, RunClaude)
 }
 
-// RunMonthlyWith はテスト可能な月次蒸留の内部実装。
-func RunMonthlyWith(ctx context.Context, params MonthlyParams, distill Distiller) error {
+// RunMonthlyWith はテスト可能な月次 hindsight の内部実装。
+func RunMonthlyWith(ctx context.Context, params MonthlyParams, summarize Summarizer) error {
 	monthLabel := fmt.Sprintf("%d-%02d", params.Year, params.Month)
 	month := time.Month(params.Month)
 
@@ -47,10 +47,10 @@ func RunMonthlyWith(ctx context.Context, params MonthlyParams, distill Distiller
 
 	// 3. 両方0件ならスキップ
 	if weeklyCount == 0 && dailyCount == 0 {
-		slog.Info("no reports found, skipping", "component", "distill", "month", monthLabel)
+		slog.Info("no reports found, skipping", "component", "hindsight", "month", monthLabel)
 		return nil
 	}
-	slog.Info("collected reports", "component", "distill", "weekly_count", weeklyCount, "daily_count", dailyCount, "month", monthLabel)
+	slog.Info("collected reports", "component", "hindsight", "weekly_count", weeklyCount, "daily_count", dailyCount, "month", monthLabel)
 
 	// 4. stdin 組み立て（週次 + 区切り + 日次）
 	stdin := buildMonthlyStdin(weeklyCombined, weeklyCount, dailyCombined, dailyCount)
@@ -63,11 +63,11 @@ func RunMonthlyWith(ctx context.Context, params MonthlyParams, distill Distiller
 		return fmt.Errorf("failed to load prompt: %w", err)
 	}
 
-	// 6. LLM 蒸留
-	slog.Info("running LLM distillation", "component", "distill")
-	result, err := distill(ctx, prompt, stdin)
+	// 6. LLM summarization
+	slog.Info("running LLM summarization", "component", "hindsight")
+	result, err := summarize(ctx, prompt, stdin)
 	if err != nil {
-		return fmt.Errorf("LLM distillation failed: %w", err)
+		return fmt.Errorf("LLM summarization failed: %w", err)
 	}
 
 	// 7. 結果保存
@@ -77,7 +77,7 @@ func RunMonthlyWith(ctx context.Context, params MonthlyParams, distill Distiller
 	}
 
 	outputPath := filepath.Join(params.OutputDir, fileName)
-	slog.Info("monthly report saved", "component", "distill", "path", outputPath)
+	slog.Info("monthly report saved", "component", "hindsight", "path", outputPath)
 	return nil
 }
 

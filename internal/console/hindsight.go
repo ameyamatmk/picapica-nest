@@ -39,8 +39,8 @@ type calendarMonth struct {
 	NextMonth int
 }
 
-// distillData は蒸留レポート画面のテンプレートデータ。
-type distillData struct {
+// hindsightData は Hindsight レポート画面のテンプレートデータ。
+type hindsightData struct {
 	pageData
 	Tab         string
 	Files       []ReportFile   // 週次・月次用
@@ -49,24 +49,24 @@ type distillData struct {
 	Content     template.HTML
 }
 
-// handleDistill は蒸留レポート画面をフルページで返す。
-func (s *Server) handleDistill(w http.ResponseWriter, r *http.Request) {
+// handleHindsight は Hindsight レポート画面をフルページで返す。
+func (s *Server) handleHindsight(w http.ResponseWriter, r *http.Request) {
 	tab := r.URL.Query().Get("tab")
 	if tab == "" {
 		tab = "daily"
 	}
 
 	year, month := parseYearMonth(r)
-	data := s.buildDistillData(tab, "", year, month)
+	data := s.buildHindsightData(tab, "", year, month)
 
-	if err := s.distillTmpl.ExecuteTemplate(w, "layout", data); err != nil {
-		slog.Error("failed to render distill page", "component", "console", "error", err)
+	if err := s.hindsightTmpl.ExecuteTemplate(w, "layout", data); err != nil {
+		slog.Error("failed to render hindsight page", "component", "console", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-// handleDistillContent は HTMX fragment としてレポートリスト + 内容を返す。
-func (s *Server) handleDistillContent(w http.ResponseWriter, r *http.Request) {
+// handleHindsightContent は HTMX fragment としてレポートリスト + 内容を返す。
+func (s *Server) handleHindsightContent(w http.ResponseWriter, r *http.Request) {
 	tab := r.URL.Query().Get("tab")
 	if tab == "" {
 		tab = "daily"
@@ -74,20 +74,20 @@ func (s *Server) handleDistillContent(w http.ResponseWriter, r *http.Request) {
 	file := r.URL.Query().Get("file")
 
 	year, month := parseYearMonth(r)
-	data := s.buildDistillData(tab, file, year, month)
+	data := s.buildHindsightData(tab, file, year, month)
 
-	if err := s.distillTmpl.ExecuteTemplate(w, "distill_content", data); err != nil {
-		slog.Error("failed to render distill content", "component", "console", "error", err)
+	if err := s.hindsightTmpl.ExecuteTemplate(w, "hindsight_content", data); err != nil {
+		slog.Error("failed to render hindsight content", "component", "console", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-// buildDistillData はテンプレートに渡すデータを構築する。
-func (s *Server) buildDistillData(tab, file string, year, month int) distillData {
-	data := distillData{
+// buildHindsightData はテンプレートに渡すデータを構築する。
+func (s *Server) buildHindsightData(tab, file string, year, month int) hindsightData {
+	data := hindsightData{
 		pageData: pageData{
-			Title:  "蒸留レポート",
-			Active: "distill",
+			Title:  "Hindsight",
+			Active: "hindsight",
 		},
 		Tab: tab,
 	}

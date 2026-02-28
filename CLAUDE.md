@@ -18,7 +18,7 @@ picapica-nest/
 │   ├── provider/         # カスタム Provider (Logging, PromptRewrite)
 │   ├── session/          # セッション管理 (idle timeout)
 │   ├── logging/          # 会話ログ (Message Bus 購読)
-│   └── distill/          # 蒸留パイプライン前処理
+│   └── hindsight/        # 振り返りパイプライン前処理
 ├── workspace/            # PicoClaw ワークスペース
 │   ├── SOUL.md
 │   ├── AGENT.md

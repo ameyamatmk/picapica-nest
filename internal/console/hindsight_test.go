@@ -143,7 +143,7 @@ func TestReportDir_TabMapping(t *testing.T) {
 	}
 }
 
-func TestHandleDistill_ReturnsHTML(t *testing.T) {
+func TestHandleHindsight_ReturnsHTML(t *testing.T) {
 	// Given: レポートファイルが存在するワークスペース
 	dir := t.TempDir()
 	dailyDir := filepath.Join(dir, "memory", "daily")
@@ -152,8 +152,8 @@ func TestHandleDistill_ReturnsHTML(t *testing.T) {
 
 	s := NewServer(dir)
 
-	// When: GET /distill にリクエスト
-	req := httptest.NewRequest("GET", "/distill", nil)
+	// When: GET /hindsight にリクエスト
+	req := httptest.NewRequest("GET", "/hindsight", nil)
 	rec := httptest.NewRecorder()
 	s.server.Handler.ServeHTTP(rec, req)
 
@@ -162,8 +162,8 @@ func TestHandleDistill_ReturnsHTML(t *testing.T) {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "蒸留レポート") {
-		t.Error("expected page to contain '蒸留レポート'")
+	if !strings.Contains(body, "Hindsight") {
+		t.Error("expected page to contain 'Hindsight'")
 	}
 	if !strings.Contains(body, "Test Report") {
 		t.Error("expected page to contain rendered report")
@@ -317,7 +317,7 @@ func TestFindLatestReportInMonth_NotFound(t *testing.T) {
 }
 
 func TestParseYearMonth_Valid(t *testing.T) {
-	req := httptest.NewRequest("GET", "/distill/content?year=2026&month=2", nil)
+	req := httptest.NewRequest("GET", "/hindsight/content?year=2026&month=2", nil)
 	year, month := parseYearMonth(req)
 	if year != 2026 || month != 2 {
 		t.Errorf("expected 2026/2, got %d/%d", year, month)
@@ -325,7 +325,7 @@ func TestParseYearMonth_Valid(t *testing.T) {
 }
 
 func TestParseYearMonth_Missing(t *testing.T) {
-	req := httptest.NewRequest("GET", "/distill/content", nil)
+	req := httptest.NewRequest("GET", "/hindsight/content", nil)
 	year, month := parseYearMonth(req)
 	if year != 0 || month != 0 {
 		t.Errorf("expected 0/0, got %d/%d", year, month)
@@ -333,7 +333,7 @@ func TestParseYearMonth_Missing(t *testing.T) {
 }
 
 func TestParseYearMonth_Invalid(t *testing.T) {
-	req := httptest.NewRequest("GET", "/distill/content?year=abc&month=2", nil)
+	req := httptest.NewRequest("GET", "/hindsight/content?year=abc&month=2", nil)
 	year, month := parseYearMonth(req)
 	if year != 0 || month != 0 {
 		t.Errorf("expected 0/0, got %d/%d", year, month)
@@ -341,14 +341,14 @@ func TestParseYearMonth_Invalid(t *testing.T) {
 }
 
 func TestParseYearMonth_OutOfRange(t *testing.T) {
-	req := httptest.NewRequest("GET", "/distill/content?year=2026&month=13", nil)
+	req := httptest.NewRequest("GET", "/hindsight/content?year=2026&month=13", nil)
 	year, month := parseYearMonth(req)
 	if year != 0 || month != 0 {
 		t.Errorf("expected 0/0 for out of range month, got %d/%d", year, month)
 	}
 }
 
-func TestHandleDistill_DailyShowsCalendar(t *testing.T) {
+func TestHandleHindsight_DailyShowsCalendar(t *testing.T) {
 	// Given: 日次レポートが存在するワークスペース
 	dir := t.TempDir()
 	dailyDir := filepath.Join(dir, "memory", "daily")
@@ -357,8 +357,8 @@ func TestHandleDistill_DailyShowsCalendar(t *testing.T) {
 
 	s := NewServer(dir)
 
-	// When: GET /distill?tab=daily
-	req := httptest.NewRequest("GET", "/distill?tab=daily", nil)
+	// When: GET /hindsight?tab=daily
+	req := httptest.NewRequest("GET", "/hindsight?tab=daily", nil)
 	rec := httptest.NewRecorder()
 	s.server.Handler.ServeHTTP(rec, req)
 
@@ -369,7 +369,7 @@ func TestHandleDistill_DailyShowsCalendar(t *testing.T) {
 	}
 }
 
-func TestHandleDistillContent_MonthNavigation(t *testing.T) {
+func TestHandleHindsightContent_MonthNavigation(t *testing.T) {
 	// Given: 1月にレポートがあるワークスペース
 	dir := t.TempDir()
 	dailyDir := filepath.Join(dir, "memory", "daily")
@@ -379,7 +379,7 @@ func TestHandleDistillContent_MonthNavigation(t *testing.T) {
 	s := NewServer(dir)
 
 	// When: 1月のカレンダーをリクエスト
-	req := httptest.NewRequest("GET", "/distill/content?tab=daily&year=2026&month=1", nil)
+	req := httptest.NewRequest("GET", "/hindsight/content?tab=daily&year=2026&month=1", nil)
 	rec := httptest.NewRecorder()
 	s.server.Handler.ServeHTTP(rec, req)
 
@@ -390,7 +390,7 @@ func TestHandleDistillContent_MonthNavigation(t *testing.T) {
 	}
 }
 
-func TestHandleDistillContent_WeeklyStillShowsList(t *testing.T) {
+func TestHandleHindsightContent_WeeklyStillShowsList(t *testing.T) {
 	// Given: 週次レポートが存在するワークスペース
 	dir := t.TempDir()
 	weeklyDir := filepath.Join(dir, "memory", "weekly")
@@ -399,8 +399,8 @@ func TestHandleDistillContent_WeeklyStillShowsList(t *testing.T) {
 
 	s := NewServer(dir)
 
-	// When: GET /distill/content?tab=weekly
-	req := httptest.NewRequest("GET", "/distill/content?tab=weekly", nil)
+	// When: GET /hindsight/content?tab=weekly
+	req := httptest.NewRequest("GET", "/hindsight/content?tab=weekly", nil)
 	rec := httptest.NewRecorder()
 	s.server.Handler.ServeHTTP(rec, req)
 
@@ -414,7 +414,7 @@ func TestHandleDistillContent_WeeklyStillShowsList(t *testing.T) {
 	}
 }
 
-func TestHandleDistillContent_Fragment(t *testing.T) {
+func TestHandleHindsightContent_Fragment(t *testing.T) {
 	// Given: レポートファイルが存在するワークスペース
 	dir := t.TempDir()
 	weeklyDir := filepath.Join(dir, "memory", "weekly")
@@ -423,8 +423,8 @@ func TestHandleDistillContent_Fragment(t *testing.T) {
 
 	s := NewServer(dir)
 
-	// When: GET /distill/content?tab=weekly にリクエスト
-	req := httptest.NewRequest("GET", "/distill/content?tab=weekly", nil)
+	// When: GET /hindsight/content?tab=weekly にリクエスト
+	req := httptest.NewRequest("GET", "/hindsight/content?tab=weekly", nil)
 	rec := httptest.NewRecorder()
 	s.server.Handler.ServeHTTP(rec, req)
 

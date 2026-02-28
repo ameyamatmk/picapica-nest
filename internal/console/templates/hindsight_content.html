@@ -1,4 +1,4 @@
-{{define "distill_content"}}
+{{define "hindsight_content"}}
 <div class="report-layout">
     <aside class="report-list">
         {{if eq .Tab "daily"}}
@@ -7,12 +7,12 @@
         <div class="calendar">
             <div class="calendar-nav">
                 <a href="#"
-                   hx-get="/distill/content?tab=daily&year={{.PrevYear}}&month={{.PrevMonth}}"
+                   hx-get="/hindsight/content?tab=daily&year={{.PrevYear}}&month={{.PrevMonth}}"
                    hx-target="#report-area"
                    aria-label="前月">&laquo;</a>
                 <strong>{{.MonthName}}</strong>
                 <a href="#"
-                   hx-get="/distill/content?tab=daily&year={{.NextYear}}&month={{.NextMonth}}"
+                   hx-get="/hindsight/content?tab=daily&year={{.NextYear}}&month={{.NextMonth}}"
                    hx-target="#report-area"
                    aria-label="翌月">&raquo;</a>
             </div>
@@ -31,7 +31,7 @@
                         {{else if .HasReport}}
                         <a class="calendar-cell has-report{{if .Selected}} selected{{end}}"
                            href="#"
-                           hx-get="/distill/content?tab=daily&year={{$.Calendar.Year}}&month={{$.Calendar.Month}}&file={{.FileName}}"
+                           hx-get="/hindsight/content?tab=daily&year={{$.Calendar.Year}}&month={{$.Calendar.Month}}&file={{.FileName}}"
                            hx-target="#report-area">
                             {{.Day}}
                         </a>
@@ -47,7 +47,7 @@
         {{/* 週次・月次: リスト表示 */}}
         <nav>
             {{range .Files}}
-            <a href="#" hx-get="/distill/content?tab={{$.Tab}}&file={{.Name}}"
+            <a href="#" hx-get="/hindsight/content?tab={{$.Tab}}&file={{.Name}}"
                hx-target="#report-area"
                {{if eq .Name $.CurrentFile}}aria-current="page"{{end}}>
                 {{.Label}}

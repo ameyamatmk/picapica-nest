@@ -1,4 +1,4 @@
-package distill
+package hindsight
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func TestRunWeeklyWith_Success(t *testing.T) {
 	// Given: 5日分の日次レポートとモック LLM
 	dailyDir, outputDir, promptPath := setupWeeklyTestReports(t)
 
-	distiller := mockDistiller("# Weekly Report\n\nA productive week.", nil)
+	summarizer := mockSummarizer("# Weekly Report\n\nA productive week.", nil)
 
 	params := WeeklyParams{
 		Year:       2026,
@@ -55,7 +55,7 @@ func TestRunWeeklyWith_Success(t *testing.T) {
 	}
 
 	// When: RunWeeklyWith を呼ぶ
-	err := RunWeeklyWith(context.Background(), params, distiller)
+	err := RunWeeklyWith(context.Background(), params, summarizer)
 
 	// Then: エラーなしでレポートが生成される
 	if err != nil {
@@ -82,7 +82,7 @@ func TestRunWeeklyWith_NoReports(t *testing.T) {
 	promptPath := filepath.Join(base, "prompt.md")
 	os.WriteFile(promptPath, []byte("{{.Period}}"), 0o644)
 
-	distiller := mockDistiller("should not be called", nil)
+	summarizer := mockSummarizer("should not be called", nil)
 
 	params := WeeklyParams{
 		Year:       2026,
@@ -93,7 +93,7 @@ func TestRunWeeklyWith_NoReports(t *testing.T) {
 	}
 
 	// When: RunWeeklyWith を呼ぶ
-	err := RunWeeklyWith(context.Background(), params, distiller)
+	err := RunWeeklyWith(context.Background(), params, summarizer)
 
 	// Then: エラーなしでスキップ
 	if err != nil {
@@ -110,7 +110,7 @@ func TestRunWeeklyWith_LLMError(t *testing.T) {
 	// Given: LLM がエラーを返す
 	dailyDir, outputDir, promptPath := setupWeeklyTestReports(t)
 
-	distiller := mockDistiller("", errors.New("API error"))
+	summarizer := mockSummarizer("", errors.New("API error"))
 
 	params := WeeklyParams{
 		Year:       2026,
@@ -121,23 +121,23 @@ func TestRunWeeklyWith_LLMError(t *testing.T) {
 	}
 
 	// When: RunWeeklyWith を呼ぶ
-	err := RunWeeklyWith(context.Background(), params, distiller)
+	err := RunWeeklyWith(context.Background(), params, summarizer)
 
 	// Then: LLM エラーが伝播する
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "LLM distillation failed") {
+	if !strings.Contains(err.Error(), "LLM summarization failed") {
 		t.Errorf("expected LLM error, got: %v", err)
 	}
 }
 
 func TestRunWeeklyWith_PromptReceivesPeriod(t *testing.T) {
-	// Given: prompt と stdin を記録する distiller
+	// Given: prompt と stdin を記録する summarizer
 	dailyDir, outputDir, promptPath := setupWeeklyTestReports(t)
 
 	var capturedPrompt, capturedStdin string
-	distiller := func(_ context.Context, prompt string, stdin string) (string, error) {
+	summarizer := func(_ context.Context, prompt string, stdin string) (string, error) {
 		capturedPrompt = prompt
 		capturedStdin = stdin
 		return "ok", nil
@@ -152,12 +152,13 @@ func TestRunWeeklyWith_PromptReceivesPeriod(t *testing.T) {
 	}
 
 	// When: RunWeeklyWith を呼ぶ
-	err := RunWeeklyWith(context.Background(), params, distiller)
+	err := RunWeeklyWith(context.Background(), params, summarizer)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Then: prompt に期間（土〜金）、stdin に日次レポートが含まれる
+
 	if !strings.Contains(capturedPrompt, "2026年2月21日〜27日") {
 		t.Errorf("expected period in prompt, got:\n%s", capturedPrompt)
 	}

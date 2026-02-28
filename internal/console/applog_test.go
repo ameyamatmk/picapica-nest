@@ -73,7 +73,7 @@ func TestHandleAppLogEntries_WithData(t *testing.T) {
 	dir := t.TempDir()
 	logDir := filepath.Join(dir, "logs", "app")
 	os.MkdirAll(logDir, 0o755)
-	logData := `{"time":"2026-02-28T10:20:21.679+09:00","level":"INFO","msg":"running weekly distillation","component":"distill","week":"2026-W09"}
+	logData := `{"time":"2026-02-28T10:20:21.679+09:00","level":"INFO","msg":"running weekly hindsight","component":"hindsight","week":"2026-W09"}
 {"time":"2026-02-28T10:20:22.000+09:00","level":"ERROR","msg":"health server error","error":"bind: address already in use"}
 `
 	os.WriteFile(filepath.Join(logDir, "2026-02-28.jsonl"), []byte(logData), 0o644)
@@ -94,7 +94,7 @@ func TestHandleAppLogEntries_WithData(t *testing.T) {
 	if strings.Contains(body, "<!DOCTYPE html>") {
 		t.Error("fragment should not contain DOCTYPE")
 	}
-	if !strings.Contains(body, "running weekly distillation") {
+	if !strings.Contains(body, "running weekly hindsight") {
 		t.Error("expected fragment to contain log message")
 	}
 	if !strings.Contains(body, "10:20:21") {
@@ -149,9 +149,9 @@ func TestLoadAppLogEntries(t *testing.T) {
 	dir := t.TempDir()
 	logDir := filepath.Join(dir, "logs", "app")
 	os.MkdirAll(logDir, 0o755)
-	logData := `{"time":"2026-02-28T10:20:21.679+09:00","level":"INFO","msg":"running weekly distillation","component":"distill","week":"2026-W09"}
+	logData := `{"time":"2026-02-28T10:20:21.679+09:00","level":"INFO","msg":"running weekly hindsight","component":"hindsight","week":"2026-W09"}
 {"time":"2026-02-28T10:20:22.000+09:00","level":"ERROR","msg":"health server error","component":"http","error":"bind: address already in use"}
-{"time":"2026-02-28T10:30:00.000+09:00","level":"INFO","msg":"session started","component":"distill"}
+{"time":"2026-02-28T10:30:00.000+09:00","level":"INFO","msg":"session started","component":"hindsight"}
 `
 	os.WriteFile(filepath.Join(logDir, "2026-02-28.jsonl"), []byte(logData), 0o644)
 
@@ -183,11 +183,11 @@ func TestLoadAppLogEntries(t *testing.T) {
 	if last.Level != "INFO" {
 		t.Errorf("expected level 'INFO', got %q", last.Level)
 	}
-	if last.Message != "running weekly distillation" {
-		t.Errorf("expected message 'running weekly distillation', got %q", last.Message)
+	if last.Message != "running weekly hindsight" {
+		t.Errorf("expected message 'running weekly hindsight', got %q", last.Message)
 	}
-	if last.Component != "distill" {
-		t.Errorf("expected component 'distill', got %q", last.Component)
+	if last.Component != "hindsight" {
+		t.Errorf("expected component 'hindsight', got %q", last.Component)
 	}
 	if last.Extra["week"] != "2026-W09" {
 		t.Errorf("expected extra field week='2026-W09', got %q", last.Extra["week"])
@@ -197,8 +197,8 @@ func TestLoadAppLogEntries(t *testing.T) {
 	if len(components) != 2 {
 		t.Fatalf("expected 2 components, got %d: %v", len(components), components)
 	}
-	if components[0] != "distill" || components[1] != "http" {
-		t.Errorf("expected [distill, http], got %v", components)
+	if components[0] != "hindsight" || components[1] != "http" {
+		t.Errorf("expected [hindsight, http], got %v", components)
 	}
 }
 

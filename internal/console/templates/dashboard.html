@@ -46,8 +46,8 @@
 
 <h2>ダッシュボード</h2>
 
-{{/* 上段: 蒸留レポート */}}
-<h3>蒸留レポート</h3>
+{{/* 上段: Hindsight レポート */}}
+<h3>Hindsight</h3>
 <div class="dashboard-cards">
     {{range .LatestReports}}
     <article>
@@ -64,7 +64,7 @@
         {{end}}
         {{if .FileName}}
         <footer>
-            <a href="/distill?tab={{.Tab}}&file={{.FileName}}">詳細を見る</a>
+            <a href="/hindsight?tab={{.Tab}}&file={{.FileName}}">詳細を見る</a>
         </footer>
         {{end}}
     </article>

@@ -193,10 +193,10 @@ func main() {
 		switch os.Args[1] {
 		case "serve":
 			err = cmdServe()
-		case "distill":
-			err = cmdDistill(os.Args[2:])
+		case "hindsight":
+			err = cmdHindsight(os.Args[2:])
 		default:
-			fmt.Fprintf(os.Stderr, "Unknown command: %s\nUsage: picapica-nest [serve|distill]\n", os.Args[1])
+			fmt.Fprintf(os.Stderr, "Unknown command: %s\nUsage: picapica-nest [serve|hindsight]\n", os.Args[1])
 			os.Exit(1)
 		}
 	}

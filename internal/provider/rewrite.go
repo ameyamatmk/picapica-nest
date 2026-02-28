@@ -72,7 +72,7 @@ func (p *PromptRewriteProvider) rewriteMessages(messages []providers.Message) []
 }
 
 // buildDynamicSection は system prompt 末尾に追加する動的セクションを生成する。
-// 時刻情報に加え、蒸留済みレポートを注入する。
+// 時刻情報に加え、Hindsight レポートを注入する。
 func (p *PromptRewriteProvider) buildDynamicSection() string {
 	now := time.Now().In(p.location)
 

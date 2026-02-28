@@ -1,4 +1,4 @@
-package distill
+package hindsight
 
 import (
 	"fmt"
@@ -72,7 +72,7 @@ func readReportFile(path string) (string, error) {
 	return strings.TrimSpace(string(data)), nil
 }
 
-// writeReportFile は蒸留結果をファイルに保存する。
+// writeReportFile は hindsight 結果をファイルに保存する。
 // ファイル名を文字列で受け取る（週次の YYYY-WNN.md や月次の YYYY-MM.md に対応）。
 func writeReportFile(outputDir string, fileName string, content string) error {
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
