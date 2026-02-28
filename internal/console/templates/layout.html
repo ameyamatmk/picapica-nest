@@ -1,0 +1,48 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{.Title}} - picapica-nest</title>
+    <link rel="stylesheet" href="/static/pico.min.css">
+    <script src="/static/htmx.min.js"></script>
+    <style>
+        .report-layout { display: grid; grid-template-columns: 200px 1fr; gap: 1rem; }
+        .report-list { max-height: 70vh; overflow-y: auto; }
+        .report-list a { display: block; padding: 0.25rem 0.5rem; text-decoration: none; font-size: 0.9rem; }
+        .report-list a[aria-current="page"] { font-weight: bold; }
+        .report-content h1 { font-size: 1.5rem; }
+        .report-content h2 { font-size: 1.25rem; }
+        .report-content h3 { font-size: 1.1rem; }
+        .tab-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .tab-group a {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.25rem;
+            text-decoration: none;
+            border: 1px solid var(--pico-primary);
+            color: var(--pico-primary);
+            cursor: pointer;
+        }
+        .tab-group a[aria-current="true"] {
+            background-color: var(--pico-primary);
+            color: var(--pico-primary-inverse);
+        }
+        td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body>
+    <header class="container">
+        <nav>
+            <ul><li><strong>picapica-nest</strong></li></ul>
+            <ul>
+                <li><a href="/distill" {{if eq .Active "distill"}}aria-current="page"{{end}}>蒸留レポート</a></li>
+                <li><a href="/usage" {{if eq .Active "usage"}}aria-current="page"{{end}}>Usage</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main class="container">
+        {{template "content" .}}
+    </main>
+</body>
+</html>{{end}}

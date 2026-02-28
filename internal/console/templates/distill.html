@@ -1,0 +1,15 @@
+{{define "content"}}
+<h2>蒸留レポート</h2>
+<div class="tab-group">
+    <a href="/distill?tab=daily"
+       {{if eq .Tab "daily"}}aria-current="true"{{end}}>日次</a>
+    <a href="/distill?tab=weekly"
+       {{if eq .Tab "weekly"}}aria-current="true"{{end}}>週次</a>
+    <a href="/distill?tab=monthly"
+       {{if eq .Tab "monthly"}}aria-current="true"{{end}}>月次</a>
+</div>
+
+<div id="report-area">
+    {{template "distill_content" .}}
+</div>
+{{end}}

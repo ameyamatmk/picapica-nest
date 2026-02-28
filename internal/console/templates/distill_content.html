@@ -1,0 +1,24 @@
+{{define "distill_content"}}
+<div class="report-layout">
+    <aside class="report-list">
+        <nav>
+            {{range .Files}}
+            <a href="#" hx-get="/distill/content?tab={{$.Tab}}&file={{.Name}}"
+               hx-target="#report-area"
+               {{if eq .Name $.CurrentFile}}aria-current="page"{{end}}>
+                {{.Label}}
+            </a>
+            {{else}}
+            <p><em>レポートがありません</em></p>
+            {{end}}
+        </nav>
+    </aside>
+    <article class="report-content">
+        {{if .Content}}
+            {{.Content}}
+        {{else}}
+            <p><em>レポートを選択してください</em></p>
+        {{end}}
+    </article>
+</div>
+{{end}}

@@ -1,0 +1,37 @@
+{{define "content"}}
+<h2>API Usage</h2>
+{{if .Error}}
+<p role="alert">{{.Error}}</p>
+{{else if not .Days}}
+<p><em>データがありません</em></p>
+{{else}}
+<figure>
+<table>
+    <thead>
+        <tr>
+            <th>日付</th>
+            <th>呼び出し回数</th>
+            <th>Prompt Tokens</th>
+            <th>Completion Tokens</th>
+            <th>Total Tokens</th>
+            <th>エラー数</th>
+            <th>平均レイテンシ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Days}}
+        <tr>
+            <td>{{.Date}}</td>
+            <td class="num">{{comma .CallCount}}</td>
+            <td class="num">{{comma .PromptTokens}}</td>
+            <td class="num">{{comma .CompletionTokens}}</td>
+            <td class="num">{{comma .TotalTokens}}</td>
+            <td class="num">{{.ErrorCount}}</td>
+            <td class="num">{{comma .AvgLatencyMs}}ms</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+</figure>
+{{end}}
+{{end}}

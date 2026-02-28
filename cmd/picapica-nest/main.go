@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ameyamatmk/picapica-nest/internal/applog"
+	"github.com/ameyamatmk/picapica-nest/internal/console"
 	"github.com/ameyamatmk/picapica-nest/internal/logging"
 	"github.com/ameyamatmk/picapica-nest/internal/provider"
 	isession "github.com/ameyamatmk/picapica-nest/internal/session"
@@ -105,6 +106,14 @@ func cmdServe() error {
 		}
 	}()
 
+	// Console server をバックグラウンドで起動
+	consoleServer := console.NewServer(cfg.WorkspacePath())
+	go func() {
+		if err := consoleServer.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("console server error", "error", err)
+		}
+	}()
+
 	// Agent Loop をバックグラウンドで起動
 	go agentLoop.Run(ctx)
 
@@ -125,6 +134,7 @@ func cmdServe() error {
 	slog.Info("shutting down")
 	cancel()
 	idleMonitor.Stop()
+	consoleServer.Stop(context.Background())
 	healthServer.Stop(context.Background())
 	agentLoop.Stop()
 	channelManager.StopAll(ctx)
