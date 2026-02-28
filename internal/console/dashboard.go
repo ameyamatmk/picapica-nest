@@ -32,7 +32,6 @@ type dashboardData struct {
 	pageData
 	LatestReports []latestReport // 日次/週次/月次の最新レポート
 	UsageSummary  *usageSummary  // Usage サマリ
-	LastSession   string         // 最終セッション日時
 }
 
 // handleDashboard はダッシュボード画面をフルページで返す。
@@ -63,13 +62,6 @@ func (s *Server) buildDashboardData() dashboardData {
 		slog.Error("failed to build usage summary", "component", "console", "error", err)
 	}
 	data.UsageSummary = summary
-
-	// 最終セッション日時を取得
-	lastSession, err := getLastSessionTime(s.workspacePath)
-	if err != nil {
-		slog.Error("failed to get last session time", "component", "console", "error", err)
-	}
-	data.LastSession = lastSession
 
 	return data
 }
@@ -213,31 +205,3 @@ func buildUsageSummary(workspacePath string) (*usageSummary, error) {
 	return summary, nil
 }
 
-// getLastSessionTime は sessions/ ディレクトリの最終更新日時を文字列で返す。
-func getLastSessionTime(workspacePath string) (string, error) {
-	sessionsDir := filepath.Join(workspacePath, "sessions")
-	entries, err := os.ReadDir(sessionsDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", err
-	}
-
-	var latest time.Time
-	for _, e := range entries {
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		if info.ModTime().After(latest) {
-			latest = info.ModTime()
-		}
-	}
-
-	if latest.IsZero() {
-		return "", nil
-	}
-
-	return latest.Format("2006-01-02 15:04"), nil
-}

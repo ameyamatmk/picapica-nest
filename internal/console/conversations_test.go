@@ -199,26 +199,27 @@ func TestLoadConversationMessages(t *testing.T) {
 		t.Fatalf("expected 3 messages, got %d", len(messages))
 	}
 
-	// 1件目: inbound メッセージ
+	// 1件目（逆順なので最新のメッセージが先頭）: inbound メッセージ
 	if messages[0].Direction != "in" {
 		t.Errorf("expected direction 'in', got %q", messages[0].Direction)
 	}
 	if messages[0].Sender != "ameyama" {
 		t.Errorf("expected sender 'ameyama', got %q", messages[0].Sender)
 	}
-	if messages[0].Time != "01:15" {
-		t.Errorf("expected time '01:15', got %q", messages[0].Time)
+	if messages[0].Time != "02:00" {
+		t.Errorf("expected time '02:00', got %q", messages[0].Time)
 	}
-	if messages[0].Content != "おはよう、今日は何する？" {
-		t.Errorf("expected content 'おはよう、今日は何する？', got %q", messages[0].Content)
+	if messages[0].Content != "散歩しよう" {
+		t.Errorf("expected content '散歩しよう', got %q", messages[0].Content)
 	}
 
-	// 2件目: outbound メッセージ（sender なし）
-	if messages[1].Direction != "out" {
-		t.Errorf("expected direction 'out', got %q", messages[1].Direction)
+	// 最後のメッセージ（最古）: inbound メッセージ
+	last := messages[len(messages)-1]
+	if last.Time != "01:15" {
+		t.Errorf("expected time '01:15', got %q", last.Time)
 	}
-	if messages[1].Sender != "" {
-		t.Errorf("expected empty sender, got %q", messages[1].Sender)
+	if last.Content != "おはよう、今日は何する？" {
+		t.Errorf("expected content 'おはよう、今日は何する？', got %q", last.Content)
 	}
 }
 

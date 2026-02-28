@@ -38,9 +38,6 @@
         font-size: 0.85rem;
         color: var(--pico-muted-color);
     }
-    .status-info {
-        font-size: 0.95rem;
-    }
     @media (max-width: 768px) {
         .dashboard-cards { grid-template-columns: 1fr; }
         .usage-grid { grid-template-columns: repeat(2, 1fr); }
@@ -101,15 +98,4 @@
     {{end}}
 </article>
 
-{{/* 下段: エージェント状態 */}}
-<h3>エージェント状態</h3>
-<article>
-    <div class="status-info">
-        {{if .LastSession}}
-        <p>最終セッション: <strong>{{.LastSession}}</strong></p>
-        {{else}}
-        <p><em>セッション情報なし</em></p>
-        {{end}}
-    </div>
-</article>
 {{end}}

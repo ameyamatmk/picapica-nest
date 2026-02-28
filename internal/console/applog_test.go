@@ -166,22 +166,31 @@ func TestLoadAppLogEntries(t *testing.T) {
 		t.Fatalf("expected 3 entries, got %d", len(entries))
 	}
 
-	// 1行目の確認
+	// 先頭は最新エントリ（逆順表示）
 	e := entries[0]
-	if e.Time != "10:20:21" {
-		t.Errorf("expected time '10:20:21', got %q", e.Time)
+	if e.Time != "10:30:00" {
+		t.Errorf("expected time '10:30:00', got %q", e.Time)
 	}
-	if e.Level != "INFO" {
-		t.Errorf("expected level 'INFO', got %q", e.Level)
+	if e.Message != "session started" {
+		t.Errorf("expected message 'session started', got %q", e.Message)
 	}
-	if e.Message != "running weekly distillation" {
-		t.Errorf("expected message 'running weekly distillation', got %q", e.Message)
+
+	// 末尾は最古エントリ
+	last := entries[len(entries)-1]
+	if last.Time != "10:20:21" {
+		t.Errorf("expected time '10:20:21', got %q", last.Time)
 	}
-	if e.Component != "distill" {
-		t.Errorf("expected component 'distill', got %q", e.Component)
+	if last.Level != "INFO" {
+		t.Errorf("expected level 'INFO', got %q", last.Level)
 	}
-	if e.Extra["week"] != "2026-W09" {
-		t.Errorf("expected extra field week='2026-W09', got %q", e.Extra["week"])
+	if last.Message != "running weekly distillation" {
+		t.Errorf("expected message 'running weekly distillation', got %q", last.Message)
+	}
+	if last.Component != "distill" {
+		t.Errorf("expected component 'distill', got %q", last.Component)
+	}
+	if last.Extra["week"] != "2026-W09" {
+		t.Errorf("expected extra field week='2026-W09', got %q", last.Extra["week"])
 	}
 
 	// コンポーネント一覧: ソート済みで重複排除

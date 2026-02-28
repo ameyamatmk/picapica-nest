@@ -41,9 +41,6 @@ func TestHandleDashboard_ReturnsHTML(t *testing.T) {
 	if !strings.Contains(body, "Usage サマリ") {
 		t.Error("expected page to contain 'Usage サマリ'")
 	}
-	if !strings.Contains(body, "エージェント状態") {
-		t.Error("expected page to contain 'エージェント状態'")
-	}
 }
 
 func TestHandleDashboard_EmptyWorkspace(t *testing.T) {
@@ -62,9 +59,6 @@ func TestHandleDashboard_EmptyWorkspace(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, "レポートなし") {
 		t.Error("expected page to contain 'レポートなし' for empty workspace")
-	}
-	if !strings.Contains(body, "セッション情報なし") {
-		t.Error("expected page to contain 'セッション情報なし' for empty workspace")
 	}
 }
 
@@ -221,41 +215,6 @@ func TestReadReportPreview_SkipsHeadings(t *testing.T) {
 	}
 	if preview != "本文テキストです。" {
 		t.Errorf("expected '本文テキストです。', got %q", preview)
-	}
-}
-
-func TestGetLastSessionTime_WithSessions(t *testing.T) {
-	// Given: sessions/ ディレクトリにファイルが存在する
-	dir := t.TempDir()
-	sessionsDir := filepath.Join(dir, "sessions")
-	os.MkdirAll(sessionsDir, 0o755)
-	os.WriteFile(filepath.Join(sessionsDir, "session1.json"), []byte("{}"), 0o644)
-
-	// When: getLastSessionTime を呼ぶ
-	result, err := getLastSessionTime(dir)
-
-	// Then: 日時文字列が返る
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result == "" {
-		t.Error("expected non-empty last session time")
-	}
-}
-
-func TestGetLastSessionTime_NoSessions(t *testing.T) {
-	// Given: sessions/ ディレクトリが存在しない
-	dir := t.TempDir()
-
-	// When: getLastSessionTime を呼ぶ
-	result, err := getLastSessionTime(dir)
-
-	// Then: 空文字列でエラーなし
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result != "" {
-		t.Errorf("expected empty string, got %q", result)
 	}
 }
 

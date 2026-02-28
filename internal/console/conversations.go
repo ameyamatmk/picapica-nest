@@ -250,6 +250,9 @@ func loadConversationMessages(workspacePath, channel, fileName string) ([]chatMe
 		return messages, err
 	}
 
+	// 新しいメッセージを上に表示するため逆順にする
+	slices.Reverse(messages)
+
 	return messages, nil
 }
 

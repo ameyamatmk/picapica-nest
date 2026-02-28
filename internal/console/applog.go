@@ -247,6 +247,9 @@ func loadAppLogEntries(workspacePath, dateFile string) ([]appLogEntry, []string,
 	}
 	slices.Sort(components)
 
+	// 新しいエントリを上に表示するため逆順にする
+	slices.Reverse(entries)
+
 	return entries, components, nil
 }
 

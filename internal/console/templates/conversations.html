@@ -1,15 +1,17 @@
 {{define "content"}}
 <style>
-    .chat-message { margin-bottom: 0.75rem; }
+    .chat-message { margin-bottom: 0.35rem; }
     .chat-in .chat-bubble {
         background: color-mix(in srgb, var(--pico-primary) 10%, transparent);
-        padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+        padding: 0.3rem 0.6rem; border-radius: 0.4rem;
+        font-size: 0.9rem; line-height: 1.4;
     }
     .chat-out .chat-bubble {
         background: var(--pico-card-background-color);
-        padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+        padding: 0.3rem 0.6rem; border-radius: 0.4rem;
+        font-size: 0.9rem; line-height: 1.4;
     }
-    .chat-meta { font-size: 0.75rem; color: var(--pico-muted-color); margin-bottom: 0.25rem; }
+    .chat-meta { font-size: 0.7rem; color: var(--pico-muted-color); margin-bottom: 0.1rem; }
     .chat-bubble { white-space: pre-wrap; word-break: break-word; }
 </style>
 <h2>会話ログ</h2>
