@@ -35,8 +35,8 @@ func TestHandleDashboard_ReturnsHTML(t *testing.T) {
 	if !strings.Contains(body, "ダッシュボード") {
 		t.Error("expected page to contain 'ダッシュボード'")
 	}
-	if !strings.Contains(body, "蒸留レポート") {
-		t.Error("expected page to contain '蒸留レポート'")
+	if !strings.Contains(body, "Hindsight") {
+		t.Error("expected page to contain 'Hindsight'")
 	}
 	if !strings.Contains(body, "Usage サマリ") {
 		t.Error("expected page to contain 'Usage サマリ'")

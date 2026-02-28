@@ -1,15 +1,15 @@
 {{define "content"}}
-<h2>蒸留レポート</h2>
+<h2>Hindsight</h2>
 <div class="tab-group">
-    <a href="/distill?tab=daily"
+    <a href="/hindsight?tab=daily"
        {{if eq .Tab "daily"}}aria-current="true"{{end}}>日次</a>
-    <a href="/distill?tab=weekly"
+    <a href="/hindsight?tab=weekly"
        {{if eq .Tab "weekly"}}aria-current="true"{{end}}>週次</a>
-    <a href="/distill?tab=monthly"
+    <a href="/hindsight?tab=monthly"
        {{if eq .Tab "monthly"}}aria-current="true"{{end}}>月次</a>
 </div>
 
 <div id="report-area">
-    {{template "distill_content" .}}
+    {{template "hindsight_content" .}}
 </div>
 {{end}}

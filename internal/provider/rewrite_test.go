@@ -257,7 +257,7 @@ func TestPromptRewriteProvider_NoMemoryFiles(t *testing.T) {
 	// When: Chat() を呼ぶ
 	systemContent := chatAndGetSystem(t, rp)
 
-	// Then: 時刻セクションのみ（蒸留セクションなし）
+	// Then: 時刻セクションのみ（Hindsight セクションなし）
 	if !strings.Contains(systemContent, "## Current Situation") {
 		t.Error("expected Current Situation section")
 	}

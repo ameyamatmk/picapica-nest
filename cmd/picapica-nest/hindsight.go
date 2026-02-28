@@ -9,29 +9,29 @@ import (
 	"time"
 
 	"github.com/ameyamatmk/picapica-nest/internal/applog"
-	"github.com/ameyamatmk/picapica-nest/internal/distill"
+	"github.com/ameyamatmk/picapica-nest/internal/hindsight"
 	"github.com/sipeed/picoclaw/pkg/config"
 )
 
-func cmdDistill(args []string) error {
+func cmdHindsight(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: picapica-nest distill <daily|weekly|monthly>")
+		return fmt.Errorf("usage: picapica-nest hindsight <daily|weekly|monthly>")
 	}
 
 	switch args[0] {
 	case "daily":
-		return cmdDistillDaily(args[1:])
+		return cmdHindsightDaily(args[1:])
 	case "weekly":
-		return cmdDistillWeekly(args[1:])
+		return cmdHindsightWeekly(args[1:])
 	case "monthly":
-		return cmdDistillMonthly(args[1:])
+		return cmdHindsightMonthly(args[1:])
 	default:
-		return fmt.Errorf("unknown distill subcommand: %s", args[0])
+		return fmt.Errorf("unknown hindsight subcommand: %s", args[0])
 	}
 }
 
-func cmdDistillDaily(args []string) error {
-	fs := flag.NewFlagSet("distill daily", flag.ExitOnError)
+func cmdHindsightDaily(args []string) error {
+	fs := flag.NewFlagSet("hindsight daily", flag.ExitOnError)
 	dateStr := fs.String("date", "", "対象日 (YYYY-MM-DD)。未指定時は前日")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -59,19 +59,19 @@ func cmdDistillDaily(args []string) error {
 	}
 
 	workspace := cfg.WorkspacePath()
-	params := distill.DailyParams{
+	params := hindsight.DailyParams{
 		Date:       targetDate,
 		LogsDir:    filepath.Join(workspace, "logs"),
 		OutputDir:  filepath.Join(workspace, "memory", "daily"),
-		PromptPath: filepath.Join(workspace, "prompts", "daily_distill.md"),
+		PromptPath: filepath.Join(workspace, "prompts", "daily_hindsight.md"),
 	}
 
-	slog.Info("running daily distillation", "component", "distill", "date", targetDate.Format("2006-01-02"))
-	return distill.RunDaily(context.Background(), params)
+	slog.Info("running daily hindsight", "component", "hindsight", "date", targetDate.Format("2006-01-02"))
+	return hindsight.RunDaily(context.Background(), params)
 }
 
-func cmdDistillWeekly(args []string) error {
-	fs := flag.NewFlagSet("distill weekly", flag.ExitOnError)
+func cmdHindsightWeekly(args []string) error {
+	fs := flag.NewFlagSet("hindsight weekly", flag.ExitOnError)
 	weekStr := fs.String("week", "", "対象週 (YYYY-WNN)。未指定時は前週（前の土曜〜金曜）")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -92,7 +92,7 @@ func cmdDistillWeekly(args []string) error {
 	if *weekStr == "" {
 		// 前週: 直近の週終了日（金曜）が属する ISO 週
 		now := time.Now()
-		weekEndDay := distill.WeekEndDay()
+		weekEndDay := hindsight.WeekEndDay()
 		daysBack := int(now.Weekday()-weekEndDay+7) % 7
 		if daysBack == 0 {
 			daysBack = 7 // 終了曜日当日なら前週
@@ -107,20 +107,20 @@ func cmdDistillWeekly(args []string) error {
 	}
 
 	workspace := cfg.WorkspacePath()
-	params := distill.WeeklyParams{
+	params := hindsight.WeeklyParams{
 		Year:       year,
 		Week:       week,
 		DailyDir:   filepath.Join(workspace, "memory", "daily"),
 		OutputDir:  filepath.Join(workspace, "memory", "weekly"),
-		PromptPath: filepath.Join(workspace, "prompts", "weekly_distill.md"),
+		PromptPath: filepath.Join(workspace, "prompts", "weekly_hindsight.md"),
 	}
 
-	slog.Info("running weekly distillation", "component", "distill", "week", fmt.Sprintf("%d-W%02d", year, week))
-	return distill.RunWeekly(context.Background(), params)
+	slog.Info("running weekly hindsight", "component", "hindsight", "week", fmt.Sprintf("%d-W%02d", year, week))
+	return hindsight.RunWeekly(context.Background(), params)
 }
 
-func cmdDistillMonthly(args []string) error {
-	fs := flag.NewFlagSet("distill monthly", flag.ExitOnError)
+func cmdHindsightMonthly(args []string) error {
+	fs := flag.NewFlagSet("hindsight monthly", flag.ExitOnError)
 	monthStr := fs.String("month", "", "対象月 (YYYY-MM)。未指定時は前月")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -155,15 +155,15 @@ func cmdDistillMonthly(args []string) error {
 	}
 
 	workspace := cfg.WorkspacePath()
-	params := distill.MonthlyParams{
+	params := hindsight.MonthlyParams{
 		Year:       year,
 		Month:      month,
 		WeeklyDir:  filepath.Join(workspace, "memory", "weekly"),
 		DailyDir:   filepath.Join(workspace, "memory", "daily"),
 		OutputDir:  filepath.Join(workspace, "memory", "monthly"),
-		PromptPath: filepath.Join(workspace, "prompts", "monthly_distill.md"),
+		PromptPath: filepath.Join(workspace, "prompts", "monthly_hindsight.md"),
 	}
 
-	slog.Info("running monthly distillation", "component", "distill", "month", fmt.Sprintf("%d-%02d", year, month))
-	return distill.RunMonthly(context.Background(), params)
+	slog.Info("running monthly hindsight", "component", "hindsight", "month", fmt.Sprintf("%d-%02d", year, month))
+	return hindsight.RunMonthly(context.Background(), params)
 }

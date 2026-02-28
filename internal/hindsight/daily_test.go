@@ -1,4 +1,4 @@
-package distill
+package hindsight
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-// mockDistiller は固定のレスポンスを返す Distiller。
-func mockDistiller(response string, err error) Distiller {
+// mockSummarizer は固定のレスポンスを返す Summarizer。
+func mockSummarizer(response string, err error) Summarizer {
 	return func(_ context.Context, _ string, _ string) (string, error) {
 		return response, err
 	}
@@ -46,7 +46,7 @@ func TestRunDailyWith_Success(t *testing.T) {
 	date := time.Date(2026, 2, 27, 0, 0, 0, 0, time.UTC)
 	logsDir, outputDir, promptPath := setupTestLogs(t, date)
 
-	distiller := mockDistiller("# Daily Report\n\nToday was productive.", nil)
+	summarizer := mockSummarizer("# Daily Report\n\nToday was productive.", nil)
 
 	params := DailyParams{
 		Date:       date,
@@ -56,7 +56,7 @@ func TestRunDailyWith_Success(t *testing.T) {
 	}
 
 	// When: RunDailyWith を呼ぶ
-	err := RunDailyWith(context.Background(), params, distiller)
+	err := RunDailyWith(context.Background(), params, summarizer)
 
 	// Then: エラーなしでレポートが生成される
 	if err != nil {
@@ -84,7 +84,7 @@ func TestRunDailyWith_NoLogs(t *testing.T) {
 	promptPath := filepath.Join(base, "prompt.md")
 	os.WriteFile(promptPath, []byte("{{.Date}}"), 0o644)
 
-	distiller := mockDistiller("should not be called", nil)
+	summarizer := mockSummarizer("should not be called", nil)
 
 	params := DailyParams{
 		Date:       date,
@@ -94,7 +94,7 @@ func TestRunDailyWith_NoLogs(t *testing.T) {
 	}
 
 	// When: RunDailyWith を呼ぶ
-	err := RunDailyWith(context.Background(), params, distiller)
+	err := RunDailyWith(context.Background(), params, summarizer)
 
 	// Then: エラーなしでスキップ（レポートは生成されない）
 	if err != nil {
@@ -112,7 +112,7 @@ func TestRunDailyWith_LLMError(t *testing.T) {
 	date := time.Date(2026, 2, 27, 0, 0, 0, 0, time.UTC)
 	logsDir, outputDir, promptPath := setupTestLogs(t, date)
 
-	distiller := mockDistiller("", errors.New("API rate limit exceeded"))
+	summarizer := mockSummarizer("", errors.New("API rate limit exceeded"))
 
 	params := DailyParams{
 		Date:       date,
@@ -122,24 +122,24 @@ func TestRunDailyWith_LLMError(t *testing.T) {
 	}
 
 	// When: RunDailyWith を呼ぶ
-	err := RunDailyWith(context.Background(), params, distiller)
+	err := RunDailyWith(context.Background(), params, summarizer)
 
 	// Then: LLM エラーが伝播する
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "LLM distillation failed") {
+	if !strings.Contains(err.Error(), "LLM summarization failed") {
 		t.Errorf("expected LLM error, got: %v", err)
 	}
 }
 
 func TestRunDailyWith_PromptReceivesTranscript(t *testing.T) {
-	// Given: LLM に渡される prompt と stdin を記録する distiller
+	// Given: LLM に渡される prompt と stdin を記録する summarizer
 	date := time.Date(2026, 2, 27, 0, 0, 0, 0, time.UTC)
 	logsDir, outputDir, promptPath := setupTestLogs(t, date)
 
 	var capturedPrompt, capturedStdin string
-	distiller := func(_ context.Context, prompt string, stdin string) (string, error) {
+	summarizer := func(_ context.Context, prompt string, stdin string) (string, error) {
 		capturedPrompt = prompt
 		capturedStdin = stdin
 		return "ok", nil
@@ -153,7 +153,7 @@ func TestRunDailyWith_PromptReceivesTranscript(t *testing.T) {
 	}
 
 	// When: RunDailyWith を呼ぶ
-	err := RunDailyWith(context.Background(), params, distiller)
+	err := RunDailyWith(context.Background(), params, summarizer)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

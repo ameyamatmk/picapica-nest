@@ -1,4 +1,4 @@
-package distill
+package hindsight
 
 import (
 	"context"

@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// latestReport は蒸留レポートの最新ファイル情報。
+// latestReport は Hindsight レポートの最新ファイル情報。
 type latestReport struct {
 	Tab      string // "daily", "weekly", "monthly"
 	TabLabel string // "日次", "週次", "月次"
@@ -53,7 +53,7 @@ func (s *Server) buildDashboardData() dashboardData {
 		},
 	}
 
-	// 蒸留レポートの最新ファイルを取得
+	// Hindsight レポートの最新ファイルを取得
 	data.LatestReports = s.buildLatestReports()
 
 	// Usage サマリを取得

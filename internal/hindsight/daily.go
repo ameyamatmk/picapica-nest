@@ -1,4 +1,4 @@
-package distill
+package hindsight
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// DailyParams は日次蒸留のパラメータ。
+// DailyParams は日次 hindsight のパラメータ。
 type DailyParams struct {
 	Date       time.Time
 	LogsDir    string // logs/ ディレクトリのパス
@@ -17,18 +17,18 @@ type DailyParams struct {
 	PromptPath string // プロンプトテンプレートのパス
 }
 
-// Distiller は LLM 呼び出しの関数型（テスト用に差し替え可能）。
-type Distiller func(ctx context.Context, prompt string, stdin string) (string, error)
+// Summarizer は LLM 呼び出しの関数型（テスト用に差し替え可能）。
+type Summarizer func(ctx context.Context, prompt string, stdin string) (string, error)
 
-// RunDaily は日次蒸留を実行する。
+// RunDaily は日次 hindsight を実行する。
 // LLM 呼び出しには RunClaude を使用する。
 func RunDaily(ctx context.Context, params DailyParams) error {
 	return RunDailyWith(ctx, params, RunClaude)
 }
 
-// RunDailyWith はテスト可能な日次蒸留の内部実装。
-// distill 引数で LLM 呼び出しを差し替え可能。
-func RunDailyWith(ctx context.Context, params DailyParams, distill Distiller) error {
+// RunDailyWith はテスト可能な日次 hindsight の内部実装。
+// summarize 引数で LLM 呼び出しを差し替え可能。
+func RunDailyWith(ctx context.Context, params DailyParams, summarize Summarizer) error {
 	dateStr := params.Date.Format("2006-01-02")
 
 	// 1. ログ収集
@@ -37,10 +37,10 @@ func RunDailyWith(ctx context.Context, params DailyParams, distill Distiller) er
 		return fmt.Errorf("failed to collect logs: %w", err)
 	}
 	if len(entries) == 0 {
-		slog.Info("no logs found, skipping", "component", "distill", "date", dateStr)
+		slog.Info("no logs found, skipping", "component", "hindsight", "date", dateStr)
 		return nil
 	}
-	slog.Info("collected log entries", "component", "distill", "count", len(entries), "date", dateStr)
+	slog.Info("collected log entries", "component", "hindsight", "count", len(entries), "date", dateStr)
 
 	// 2. transcript 生成
 	transcript := FormatTranscript(entries)
@@ -54,11 +54,11 @@ func RunDailyWith(ctx context.Context, params DailyParams, distill Distiller) er
 		return fmt.Errorf("failed to load prompt: %w", err)
 	}
 
-	// 4. LLM 蒸留
-	slog.Info("running LLM distillation", "component", "distill")
-	result, err := distill(ctx, prompt, transcript)
+	// 4. LLM summarization
+	slog.Info("running LLM summarization", "component", "hindsight")
+	result, err := summarize(ctx, prompt, transcript)
 	if err != nil {
-		return fmt.Errorf("LLM distillation failed: %w", err)
+		return fmt.Errorf("LLM summarization failed: %w", err)
 	}
 
 	// 5. 結果保存
@@ -67,11 +67,11 @@ func RunDailyWith(ctx context.Context, params DailyParams, distill Distiller) er
 	}
 
 	outputPath := filepath.Join(params.OutputDir, dateStr+".md")
-	slog.Info("daily report saved", "component", "distill", "path", outputPath)
+	slog.Info("daily report saved", "component", "hindsight", "path", outputPath)
 	return nil
 }
 
-// writeReport は蒸留結果をファイルに保存する。
+// writeReport は hindsight 結果をファイルに保存する。
 func writeReport(outputDir string, date time.Time, content string) error {
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)

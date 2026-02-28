@@ -1,4 +1,4 @@
-package distill
+package hindsight
 
 import (
 	"context"
@@ -54,7 +54,7 @@ func TestRunMonthlyWith_Success(t *testing.T) {
 	// Given: 週次3件 + 日次4件とモック LLM
 	weeklyDir, dailyDir, outputDir, promptPath := setupMonthlyTestReports(t)
 
-	distiller := mockDistiller("# Monthly Report\n\nFebruary summary.", nil)
+	summarizer := mockSummarizer("# Monthly Report\n\nFebruary summary.", nil)
 
 	params := MonthlyParams{
 		Year:       2026,
@@ -66,7 +66,7 @@ func TestRunMonthlyWith_Success(t *testing.T) {
 	}
 
 	// When: RunMonthlyWith を呼ぶ
-	err := RunMonthlyWith(context.Background(), params, distiller)
+	err := RunMonthlyWith(context.Background(), params, summarizer)
 
 	// Then: エラーなしでレポートが生成される
 	if err != nil {
@@ -98,7 +98,7 @@ func TestRunMonthlyWith_WeeklyOnly(t *testing.T) {
 	os.WriteFile(promptPath, []byte("{{.Period}}"), 0o644)
 
 	var capturedStdin string
-	distiller := func(_ context.Context, _ string, stdin string) (string, error) {
+	summarizer := func(_ context.Context, _ string, stdin string) (string, error) {
 		capturedStdin = stdin
 		return "ok", nil
 	}
@@ -113,7 +113,7 @@ func TestRunMonthlyWith_WeeklyOnly(t *testing.T) {
 	}
 
 	// When: RunMonthlyWith を呼ぶ
-	err := RunMonthlyWith(context.Background(), params, distiller)
+	err := RunMonthlyWith(context.Background(), params, summarizer)
 
 	// Then: 週次セクションだけで実行される
 	if err != nil {
@@ -142,7 +142,7 @@ func TestRunMonthlyWith_DailyFallback(t *testing.T) {
 	os.WriteFile(promptPath, []byte("{{.Period}}"), 0o644)
 
 	var capturedStdin string
-	distiller := func(_ context.Context, _ string, stdin string) (string, error) {
+	summarizer := func(_ context.Context, _ string, stdin string) (string, error) {
 		capturedStdin = stdin
 		return "ok", nil
 	}
@@ -157,7 +157,7 @@ func TestRunMonthlyWith_DailyFallback(t *testing.T) {
 	}
 
 	// When: RunMonthlyWith を呼ぶ
-	err := RunMonthlyWith(context.Background(), params, distiller)
+	err := RunMonthlyWith(context.Background(), params, summarizer)
 
 	// Then: 日次セクションだけで実行される
 	if err != nil {
@@ -186,7 +186,7 @@ func TestRunMonthlyWith_NoReports(t *testing.T) {
 	promptPath := filepath.Join(base, "prompt.md")
 	os.WriteFile(promptPath, []byte("{{.Period}}"), 0o644)
 
-	distiller := mockDistiller("should not be called", nil)
+	summarizer := mockSummarizer("should not be called", nil)
 
 	params := MonthlyParams{
 		Year:       2026,
@@ -198,7 +198,7 @@ func TestRunMonthlyWith_NoReports(t *testing.T) {
 	}
 
 	// When: RunMonthlyWith を呼ぶ
-	err := RunMonthlyWith(context.Background(), params, distiller)
+	err := RunMonthlyWith(context.Background(), params, summarizer)
 
 	// Then: エラーなしでスキップ
 	if err != nil {
@@ -215,7 +215,7 @@ func TestRunMonthlyWith_LLMError(t *testing.T) {
 	// Given: LLM がエラーを返す
 	weeklyDir, dailyDir, outputDir, promptPath := setupMonthlyTestReports(t)
 
-	distiller := mockDistiller("", errors.New("API error"))
+	summarizer := mockSummarizer("", errors.New("API error"))
 
 	params := MonthlyParams{
 		Year:       2026,
@@ -227,13 +227,13 @@ func TestRunMonthlyWith_LLMError(t *testing.T) {
 	}
 
 	// When: RunMonthlyWith を呼ぶ
-	err := RunMonthlyWith(context.Background(), params, distiller)
+	err := RunMonthlyWith(context.Background(), params, summarizer)
 
 	// Then: LLM エラーが伝播する
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "LLM distillation failed") {
+	if !strings.Contains(err.Error(), "LLM summarization failed") {
 		t.Errorf("expected LLM error, got: %v", err)
 	}
 }

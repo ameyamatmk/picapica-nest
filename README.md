@@ -2,7 +2,7 @@
 
 日常の記録・整理・振り返りを行う個人用 AI エージェント。
 
-Discord 経由で会話し、会話ログを自動記録・定期的に蒸留（要約）して振り返りに活用する。
+Discord 経由で会話し、会話ログを自動記録・定期的に振り返り（hindsight）して活用する。
 
 ## 技術スタック
 
@@ -16,19 +16,19 @@ Discord 経由で会話し、会話ログを自動記録・定期的に蒸留（
 
 ```
 picapica-nest/
-├── cmd/picapica-nest/    # エントリーポイント (serve / distill コマンド)
+├── cmd/picapica-nest/    # エントリーポイント (serve / hindsight コマンド)
 ├── internal/
 │   ├── applog/           # 構造化アプリケーションログ
 │   ├── console/          # Web コンソール (HTMX + Pico CSS)
-│   ├── distill/          # 蒸留パイプライン前処理
+│   ├── hindsight/        # 振り返りパイプライン前処理
 │   ├── logging/          # 会話ログ記録 (MessageBus 購読)
 │   ├── provider/         # LLM Provider wrapper (Logging, PromptRewrite)
 │   └── session/          # セッション管理 (Idle timeout)
 ├── workspace/            # PicoClaw ワークスペース
 │   ├── SOUL.md           # エージェントの personality
 │   ├── AGENTS.md         # エージェント定義
-│   ├── memory/           # 蒸留結果 (daily/weekly/monthly)
-│   ├── prompts/          # 蒸留 Prompt テンプレート
+│   ├── memory/           # Hindsight 結果 (daily/weekly/monthly)
+│   ├── prompts/          # Hindsight Prompt テンプレート
 │   └── logs/             # 会話ログ (JSONL)
 ├── deploy/               # デプロイ設定 (systemd, スクリプト)
 ├── docs/                 # 設計書
@@ -92,10 +92,10 @@ go vet ./...        # 静的解析
 # メインサーバー起動 (Discord Bot + Web コンソール)
 picapica-nest serve
 
-# 蒸留の手動実行
-picapica-nest distill daily   [-date YYYY-MM-DD]
-picapica-nest distill weekly  [-week YYYY-WNN]
-picapica-nest distill monthly [-month YYYY-MM]
+# Hindsight の手動実行
+picapica-nest hindsight daily   [-date YYYY-MM-DD]
+picapica-nest hindsight weekly  [-week YYYY-WNN]
+picapica-nest hindsight monthly [-month YYYY-MM]
 ```
 
 ## サーバーポート
@@ -111,8 +111,8 @@ picapica-nest distill monthly [-month YYYY-MM]
 
 | 画面 | パス | 内容 |
 |------|------|------|
-| ダッシュボード | `/dashboard` | 蒸留レポート概要、Usage サマリ |
-| 蒸留レポート | `/distill` | 日次（カレンダー）/ 週次 / 月次レポート閲覧 |
+| ダッシュボード | `/dashboard` | Hindsight レポート概要、Usage サマリ |
+| Hindsight | `/hindsight` | 日次（カレンダー）/ 週次 / 月次レポート閲覧 |
 | 会話ログ | `/conversations` | チャンネル別の会話ログ閲覧 |
 | ワークスペース | `/workspace` | Markdown ファイルの閲覧 |
 | Usage | `/usage` | API 呼び出し回数・トークン数の日別集計 |
@@ -137,4 +137,4 @@ systemd service: [`deploy/picapica-nest.service`](deploy/picapica-nest.service)
 - PicoClaw 本体の改造はゼロを原則とし、拡張は Provider wrapper / カスタムツール / ワークスペースファイルで実現
 - Provider chain: `PromptRewrite → Logging → Anthropic`
 - Message Bus: channelBus（Discord 側）と agentBus（Agent 側）を ConversationLogger が Bridge
-- 蒸留: 会話ログを日次→週次→月次で段階的に要約し、`memory/` に保存
+- Hindsight: 会話ログを日次→週次→月次で段階的に振り返り、`memory/` に保存
