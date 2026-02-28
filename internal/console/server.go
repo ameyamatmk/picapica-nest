@@ -65,7 +65,7 @@ func NewServer(workspacePath string) *Server {
 	mux.HandleFunc("GET /usage", s.handleUsage)
 
 	staticSub, _ := fs.Sub(staticFS, "static")
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(staticSub)))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", cacheControl(http.FileServerFS(staticSub))))
 
 	s.server = &http.Server{
 		Addr:         fmt.Sprintf(":%d", Port),
@@ -97,6 +97,15 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 type pageData struct {
 	Title  string
 	Active string
+}
+
+// cacheControl は静的ファイル配信に Cache-Control ヘッダーを付与するミドルウェア。
+// embed されたファイルはビルド時に固定されるため、長期キャッシュが安全に使える。
+func cacheControl(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // formatComma は数値をコンマ区切りの文字列に変換する。
