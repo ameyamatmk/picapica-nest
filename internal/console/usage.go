@@ -35,11 +35,19 @@ type DailyUsage struct {
 	AvgLatencyMs     int64
 }
 
+// usagePeriod は期間選択の選択肢。
+type usagePeriod struct {
+	Label  string
+	Value  string
+	Active bool
+}
+
 // usageData は Usage 画面のテンプレートデータ。
 type usageData struct {
 	pageData
-	Days  []DailyUsage
-	Error string
+	Days    []DailyUsage
+	Error   string
+	Periods []usagePeriod
 }
 
 // dailyAccumulator は日別集計の中間データ。
@@ -80,16 +88,47 @@ func (a *dailyAccumulator) toDailyUsage() DailyUsage {
 	}
 }
 
+// periodOptions は期間選択の選択肢を定義する。
+var periodOptions = []struct {
+	label string
+	value string
+	days  int // 0 は全期間
+}{
+	{"7日", "7d", 7},
+	{"30日", "30d", 30},
+	{"90日", "90d", 90},
+	{"全期間", "all", 0},
+}
+
 // handleUsage は Usage 画面をフルページで返す。
 func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
 	days, err := loadUsage(s.workspacePath)
+
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "30d"
+	}
+
+	// 期間フィルタリング
+	filtered := filterByPeriod(days, period)
+
+	// 期間選択タブ用データ
+	periods := make([]usagePeriod, len(periodOptions))
+	for i, opt := range periodOptions {
+		periods[i] = usagePeriod{
+			Label:  opt.label,
+			Value:  opt.value,
+			Active: opt.value == period,
+		}
+	}
 
 	data := usageData{
 		pageData: pageData{
 			Title:  "Usage",
 			Active: "usage",
 		},
-		Days: days,
+		Days:    filtered,
+		Periods: periods,
 	}
 	if err != nil {
 		data.Error = err.Error()
@@ -100,6 +139,29 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
 		slog.Error("failed to render usage page", "component", "console", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+// filterByPeriod は指定期間のデータだけを返す。
+func filterByPeriod(days []DailyUsage, period string) []DailyUsage {
+	var numDays int
+	for _, opt := range periodOptions {
+		if opt.value == period {
+			numDays = opt.days
+			break
+		}
+	}
+	if numDays == 0 {
+		return days
+	}
+
+	cutoff := time.Now().AddDate(0, 0, -numDays).Format("2006-01-02")
+	var filtered []DailyUsage
+	for _, d := range days {
+		if d.Date >= cutoff {
+			filtered = append(filtered, d)
+		}
+	}
+	return filtered
 }
 
 // loadUsage は usage.jsonl を読み込み、日別に集計して降順で返す。

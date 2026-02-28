@@ -29,6 +29,10 @@
             background-color: var(--pico-primary);
             color: var(--pico-primary-inverse);
         }
+        nav [aria-current="page"] {
+            font-weight: bold;
+            border-bottom: 2px solid var(--pico-primary);
+        }
         td.num { text-align: right; font-variant-numeric: tabular-nums; }
         .calendar { padding: 0.5rem; }
         .calendar-nav {
@@ -94,11 +98,31 @@
                 <li><a href="/workspace" {{if eq .Active "workspace"}}aria-current="page"{{end}}>ワークスペース</a></li>
                 <li><a href="/usage" {{if eq .Active "usage"}}aria-current="page"{{end}}>Usage</a></li>
                 <li><a href="/logs" {{if eq .Active "logs"}}aria-current="page"{{end}}>ログ</a></li>
+                <li><a href="#" id="theme-toggle" role="button" class="outline" style="padding: 0.25rem 0.5rem; font-size: 0.85rem;" onclick="toggleTheme(); return false;">🌙</a></li>
             </ul>
         </nav>
     </header>
     <main class="container">
         {{template "content" .}}
     </main>
+    <script>
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            document.getElementById('theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', next);
+            applyTheme(next);
+        }
+        (function() {
+            var saved = localStorage.getItem('theme');
+            if (!saved) {
+                saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            applyTheme(saved);
+        })();
+    </script>
 </body>
 </html>{{end}}
