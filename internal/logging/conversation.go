@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -127,7 +128,7 @@ func (cl *ConversationLogger) logOutbound(msg bus.OutboundMessage) {
 func (cl *ConversationLogger) writeEntry(channel, chatID string, entry LogEntry) {
 	data, err := json.Marshal(entry)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "conversation logger: failed to marshal entry: %v\n", err)
+		slog.Error("failed to marshal log entry", "component", "conversation-logger", "error", err)
 		return
 	}
 
@@ -143,20 +144,20 @@ func (cl *ConversationLogger) writeEntry(channel, chatID string, entry LogEntry)
 	defer cl.mu.Unlock()
 
 	if err := os.MkdirAll(dirPath, 0o755); err != nil {
-		fmt.Fprintf(os.Stderr, "conversation logger: failed to create directory %s: %v\n", dirPath, err)
+		slog.Error("failed to create log directory", "component", "conversation-logger", "path", dirPath, "error", err)
 		return
 	}
 
 	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "conversation logger: failed to open file %s: %v\n", filePath, err)
+		slog.Error("failed to open log file", "component", "conversation-logger", "path", filePath, "error", err)
 		return
 	}
 	defer f.Close()
 
 	data = append(data, '\n')
 	if _, err := f.Write(data); err != nil {
-		fmt.Fprintf(os.Stderr, "conversation logger: failed to write to file %s: %v\n", filePath, err)
+		slog.Error("failed to write to log file", "component", "conversation-logger", "path", filePath, "error", err)
 	}
 }
 

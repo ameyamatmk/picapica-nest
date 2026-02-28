@@ -3,7 +3,7 @@ package session
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -115,7 +115,7 @@ func (m *IdleMonitor) checkDir(dir string) {
 		}
 
 		// セッションをクリア
-		fmt.Printf("IdleMonitor: session %q idle for %v, clearing\n", sf.Key, idle.Truncate(time.Second))
+		slog.Info("session idle, clearing", "component", "idle-monitor", "session", sf.Key, "idle_duration", idle.Truncate(time.Second).String())
 		m.clearSession(dir, sf.Key)
 	}
 }
@@ -140,7 +140,7 @@ func (m *IdleMonitor) clearSession(dir, key string) {
 
 	// 1. 現在の状態を保存
 	if err := sm.Save(key); err != nil {
-		fmt.Printf("IdleMonitor: failed to save session %q before clear: %v\n", key, err)
+		slog.Error("failed to save session before clear", "component", "idle-monitor", "session", key, "error", err)
 		return
 	}
 
@@ -152,11 +152,11 @@ func (m *IdleMonitor) clearSession(dir, key string) {
 
 	// 4. クリア後の状態を保存
 	if err := sm.Save(key); err != nil {
-		fmt.Printf("IdleMonitor: failed to save session %q after clear: %v\n", key, err)
+		slog.Error("failed to save session after clear", "component", "idle-monitor", "session", key, "error", err)
 		return
 	}
 
-	fmt.Printf("IdleMonitor: session %q cleared successfully\n", key)
+	slog.Info("session cleared successfully", "component", "idle-monitor", "session", key)
 }
 
 // SessionsDirsFromConfig は config から sessions ディレクトリパスを返す。

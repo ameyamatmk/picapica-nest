@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"time"
 
+	"github.com/ameyamatmk/picapica-nest/internal/applog"
 	"github.com/ameyamatmk/picapica-nest/internal/logging"
 	"github.com/ameyamatmk/picapica-nest/internal/provider"
 	isession "github.com/ameyamatmk/picapica-nest/internal/session"
@@ -35,6 +37,13 @@ func cmdServe() error {
 		return fmt.Errorf("config load error: %w", err)
 	}
 
+	// ロガー初期化
+	logCloser, err := applog.Setup(cfg.WorkspacePath())
+	if err != nil {
+		return fmt.Errorf("failed to setup logging: %w", err)
+	}
+	defer logCloser.Close()
+
 	// 2. Provider 作成（Decorator chain: PromptRewrite → Logging → Inner）
 	inner, err := providers.CreateProvider(cfg)
 	if err != nil {
@@ -43,7 +52,7 @@ func cmdServe() error {
 	usageLogPath := filepath.Join(cfg.WorkspacePath(), "usage.jsonl")
 	loggingProvider := provider.NewLoggingProvider(inner, usageLogPath)
 	llmProvider := provider.NewPromptRewriteProvider(loggingProvider, cfg.WorkspacePath())
-	fmt.Printf("Provider chain: PromptRewrite → Logging(%s) → %T\n", usageLogPath, inner)
+	slog.Info("provider chain configured", "chain", fmt.Sprintf("PromptRewrite → Logging → %T", inner), "usage_log", usageLogPath)
 
 	// 3. Message Bus 作成（Dual Bus + Bridge パターン）
 	// channelBus: Channel 側（Channel が PublishInbound / SubscribeOutbound する先）
@@ -68,15 +77,15 @@ func cmdServe() error {
 
 	enabledChannels := channelManager.GetEnabledChannels()
 	if len(enabledChannels) > 0 {
-		fmt.Printf("Channels enabled: %s\n", enabledChannels)
+		slog.Info("channels enabled", "channels", enabledChannels)
 	} else {
-		fmt.Println("Warning: No channels enabled")
+		slog.Warn("no channels enabled")
 	}
 
 	// 7. Health server 起動
 	healthServer := health.NewServer(cfg.Gateway.Host, cfg.Gateway.Port)
 
-	fmt.Printf("Gateway starting on %s:%d\n", cfg.Gateway.Host, cfg.Gateway.Port)
+	slog.Info("gateway starting", "host", cfg.Gateway.Host, "port", cfg.Gateway.Port)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -86,13 +95,13 @@ func cmdServe() error {
 
 	// 8. 全チャンネル起動
 	if err := channelManager.StartAll(ctx); err != nil {
-		fmt.Printf("Error starting channels: %v\n", err)
+		slog.Error("failed to start channels", "error", err)
 	}
 
 	// Health server をバックグラウンドで起動
 	go func() {
 		if err := healthServer.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("Health server error: %v\n", err)
+			slog.Error("health server error", "error", err)
 		}
 	}()
 
@@ -104,22 +113,22 @@ func cmdServe() error {
 	idleTimeout := 30 * time.Minute
 	idleMonitor := isession.NewIdleMonitor(sessionsDirs, idleTimeout, 1*time.Minute)
 	idleMonitor.Start(ctx)
-	fmt.Printf("IdleMonitor started (timeout=%v, dirs=%v)\n", idleTimeout, sessionsDirs)
+	slog.Info("idle monitor started", "component", "idle-monitor", "timeout", idleTimeout, "dirs", sessionsDirs)
 
-	fmt.Println("picapica-nest started. Press Ctrl+C to stop.")
+	slog.Info("picapica-nest started")
 
 	// 9. シグナルハンドリング + graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	<-sigChan
 
-	fmt.Println("\nShutting down...")
+	slog.Info("shutting down")
 	cancel()
 	idleMonitor.Stop()
 	healthServer.Stop(context.Background())
 	agentLoop.Stop()
 	channelManager.StopAll(ctx)
-	fmt.Println("picapica-nest stopped.")
+	slog.Info("picapica-nest stopped")
 
 	return nil
 }
