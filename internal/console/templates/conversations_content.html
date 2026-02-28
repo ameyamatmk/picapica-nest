@@ -1,3 +1,40 @@
 {{define "conversations_content"}}
-<p><em>準備中</em></p>
+<div class="report-layout">
+    <aside class="report-list">
+        {{if .Channels}}
+        <select name="channel"
+                hx-get="/conversations/messages"
+                hx-target="#conversations-area"
+                hx-include="this"
+                aria-label="チャンネル選択">
+            {{range .Channels}}
+            <option value="{{.DirName}}" {{if eq .DirName $.CurrentChannel}}selected{{end}}>{{.Label}}</option>
+            {{end}}
+        </select>
+        {{end}}
+        <nav>
+            {{range .Dates}}
+            <a href="#"
+               hx-get="/conversations/messages?channel={{$.CurrentChannel}}&date={{.FileName}}"
+               hx-target="#conversations-area"
+               {{if eq .FileName $.CurrentDate}}aria-current="page"{{end}}>{{.Label}}</a>
+            {{end}}
+            {{if not .Dates}}
+            <p><em>ログがありません</em></p>
+            {{end}}
+        </nav>
+    </aside>
+    <article class="report-content">
+        {{if .Messages}}
+            {{range .Messages}}
+            <div class="chat-message chat-{{.Direction}}">
+                <div class="chat-meta">{{.Time}}{{if .Sender}} ({{.Sender}}){{end}}</div>
+                <div class="chat-bubble">{{.Content}}</div>
+            </div>
+            {{end}}
+        {{else}}
+            <p><em>メッセージがありません</em></p>
+        {{end}}
+    </article>
+</div>
 {{end}}
