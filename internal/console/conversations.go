@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 )
 
 // conversationChannel はチャンネルのメタデータ。
@@ -84,7 +86,7 @@ func (s *Server) buildConversationsData(channel, date string) conversationsData 
 	}
 
 	// チャンネル一覧を取得
-	channels, err := listConversationChannels(s.workspacePath)
+	channels, err := listConversationChannels(s.workspacePath, s.resolver)
 	if err != nil {
 		slog.Error("failed to list conversation channels", "component", "console", "error", err)
 	}
@@ -130,7 +132,8 @@ func (s *Server) buildConversationsData(channel, date string) conversationsData 
 
 // listConversationChannels は logs/ 直下のチャンネルディレクトリ一覧を返す。
 // "app" ディレクトリは除外する。
-func listConversationChannels(workspacePath string) ([]conversationChannel, error) {
+// resolver が非 nil の場合、Discord API でチャンネル名を解決する。
+func listConversationChannels(workspacePath string, resolver *channellabel.Resolver) ([]conversationChannel, error) {
 	logsDir := filepath.Join(workspacePath, "logs")
 	entries, err := os.ReadDir(logsDir)
 	if err != nil {
@@ -150,9 +153,17 @@ func listConversationChannels(workspacePath string) ([]conversationChannel, erro
 		if name == "app" {
 			continue
 		}
+
+		label := formatChannelLabel(name)
+		if resolver != nil {
+			if resolved, err := resolver.Resolve(name); err == nil {
+				label = resolved
+			}
+		}
+
 		channels = append(channels, conversationChannel{
 			DirName: name,
-			Label:   formatChannelLabel(name),
+			Label:   label,
 		})
 	}
 
@@ -164,15 +175,15 @@ func listConversationChannels(workspacePath string) ([]conversationChannel, erro
 	return channels, nil
 }
 
-// formatChannelLabel はディレクトリ名を表示用ラベルに変換する。
-// 例: "discord_test-channel" → "discord / test-channel"
+// formatChannelLabel はディレクトリ名から chatID 部分を抽出して返す。
+// 現状 Discord チャンネルのみの運用のため、プレフィックスは省略する。
+// 例: "discord_test-channel" → "test-channel"
 func formatChannelLabel(dirName string) string {
-	// 最初の "_" で分割
 	idx := strings.Index(dirName, "_")
 	if idx < 0 {
 		return dirName
 	}
-	return dirName[:idx] + " / " + dirName[idx+1:]
+	return dirName[idx+1:]
 }
 
 // listConversationDates は指定チャンネルの日付一覧を降順で返す。

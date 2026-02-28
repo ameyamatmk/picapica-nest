@@ -23,7 +23,7 @@ func TestHandleConversations_ReturnsHTML(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewServer(dir)
+	s := NewServer(dir, nil)
 
 	// When: GET /conversations にリクエスト
 	req := httptest.NewRequest("GET", "/conversations", nil)
@@ -41,7 +41,7 @@ func TestHandleConversations_ReturnsHTML(t *testing.T) {
 	if !strings.Contains(body, "おはよう") {
 		t.Error("expected page to contain message content")
 	}
-	if !strings.Contains(body, "discord / test-channel") {
+	if !strings.Contains(body, "test-channel") {
 		t.Error("expected page to contain channel label")
 	}
 }
@@ -50,7 +50,7 @@ func TestHandleConversations_EmptyLogs(t *testing.T) {
 	// Given: ログディレクトリが存在しないワークスペース
 	dir := t.TempDir()
 
-	s := NewServer(dir)
+	s := NewServer(dir, nil)
 
 	// When: GET /conversations にリクエスト
 	req := httptest.NewRequest("GET", "/conversations", nil)
@@ -81,7 +81,7 @@ func TestHandleConversationMessages_WithData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewServer(dir)
+	s := NewServer(dir, nil)
 
 	// When: GET /conversations/messages にリクエスト
 	req := httptest.NewRequest("GET", "/conversations/messages?channel=discord_general&date=2026-02-27.jsonl", nil)
@@ -129,8 +129,8 @@ func TestListConversationChannels(t *testing.T) {
 		}
 	}
 
-	// When: listConversationChannels を呼ぶ
-	channels, err := listConversationChannels(dir)
+	// When: listConversationChannels を呼ぶ（resolver なし）
+	channels, err := listConversationChannels(dir, nil)
 
 	// Then: app/ は除外され、チャンネルが昇順で返る
 	if err != nil {
@@ -142,8 +142,8 @@ func TestListConversationChannels(t *testing.T) {
 	if channels[0].DirName != "discord_general" {
 		t.Errorf("expected first channel 'discord_general', got %q", channels[0].DirName)
 	}
-	if channels[0].Label != "discord / general" {
-		t.Errorf("expected label 'discord / general', got %q", channels[0].Label)
+	if channels[0].Label != "general" {
+		t.Errorf("expected label 'general', got %q", channels[0].Label)
 	}
 	if channels[1].DirName != "discord_test-channel" {
 		t.Errorf("expected second channel 'discord_test-channel', got %q", channels[1].DirName)
@@ -162,7 +162,7 @@ func TestListConversationChannels_Empty(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nonexistent")
 
 	// When
-	channels, err := listConversationChannels(dir)
+	channels, err := listConversationChannels(dir, nil)
 
 	// Then
 	if err != nil {
@@ -260,10 +260,10 @@ func TestFormatChannelLabel(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"discord_test-channel", "discord / test-channel"},
-		{"discord_general", "discord / general"},
+		{"discord_test-channel", "test-channel"},
+		{"discord_general", "general"},
 		{"simple", "simple"},
-		{"a_b_c", "a / b_c"},
+		{"a_b_c", "b_c"},
 	}
 
 	for _, tt := range tests {
