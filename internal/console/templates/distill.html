@@ -1,0 +1,15 @@
+{{define "content"}}
+<h2>蒸留レポート</h2>
+<div role="group">
+    <button hx-get="/distill/content?tab=daily" hx-target="#report-area"
+            {{if eq .Tab "daily"}}aria-current="true"{{end}}>日次</button>
+    <button hx-get="/distill/content?tab=weekly" hx-target="#report-area"
+            {{if eq .Tab "weekly"}}aria-current="true"{{end}}>週次</button>
+    <button hx-get="/distill/content?tab=monthly" hx-target="#report-area"
+            {{if eq .Tab "monthly"}}aria-current="true"{{end}}>月次</button>
+</div>
+
+<div id="report-area">
+    {{template "distill_content" .}}
+</div>
+{{end}}
