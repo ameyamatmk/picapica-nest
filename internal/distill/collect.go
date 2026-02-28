@@ -27,15 +27,27 @@ func isoWeekEnd(year, week int) time.Time {
 	return isoWeekStart(year, week).AddDate(0, 0, 6)
 }
 
-// weekStartSat は ISO 週番号に対応する週の土曜日（開始日）を返す。
-// 週の定義: 土曜日〜金曜日。ISO 週 N の金曜日を含む週の土曜日開始。
-func weekStartSat(year, week int) time.Time {
-	return isoWeekStart(year, week).AddDate(0, 0, -2)
+// weekStartOffset は週の開始曜日の ISO 月曜日からのオフセット（日数）。
+// -2 = 土曜日, -1 = 日曜日, 0 = 月曜日
+const weekStartOffset = -2
+
+// WeekEndDay は週の終了曜日を返す。
+// cmd 側でデフォルト週を計算する際に使用する。
+func WeekEndDay() time.Weekday {
+	// ISO 月曜 + weekStartOffset + 6
+	return time.Weekday((int(time.Monday) + weekStartOffset + 6 + 7) % 7)
 }
 
-// weekEndFri は ISO 週番号に対応する週の金曜日（終了日）を返す。
+// weekStartSat は ISO 週番号に対応する週の開始日を返す。
+// 開始曜日は weekStartOffset で決まる（デフォルト: 土曜日）。
+func weekStartSat(year, week int) time.Time {
+	return isoWeekStart(year, week).AddDate(0, 0, weekStartOffset)
+}
+
+// weekEndFri は ISO 週番号に対応する週の終了日を返す。
+// 開始日の6日後（デフォルト: 金曜日）。
 func weekEndFri(year, week int) time.Time {
-	return isoWeekStart(year, week).AddDate(0, 0, 4)
+	return isoWeekStart(year, week).AddDate(0, 0, weekStartOffset+6)
 }
 
 // weekFileName は週次レポートのファイル名を返す。

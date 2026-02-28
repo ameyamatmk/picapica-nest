@@ -76,15 +76,15 @@ func cmdDistillWeekly(args []string) error {
 
 	var year, week int
 	if *weekStr == "" {
-		// 前週: 直近の金曜日が属する ISO 週
+		// 前週: 直近の週終了日（金曜）が属する ISO 週
 		now := time.Now()
-		// 直近の金曜日を見つける（土曜朝に実行される想定）
-		daysBack := int(now.Weekday()-time.Friday+7) % 7
+		weekEndDay := distill.WeekEndDay()
+		daysBack := int(now.Weekday()-weekEndDay+7) % 7
 		if daysBack == 0 {
-			daysBack = 7 // 金曜日当日なら前週の金曜
+			daysBack = 7 // 終了曜日当日なら前週
 		}
-		lastFriday := now.AddDate(0, 0, -daysBack)
-		year, week = lastFriday.ISOWeek()
+		lastEndDay := now.AddDate(0, 0, -daysBack)
+		year, week = lastEndDay.ISOWeek()
 	} else {
 		_, err := fmt.Sscanf(*weekStr, "%d-W%d", &year, &week)
 		if err != nil {
