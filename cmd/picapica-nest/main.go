@@ -42,7 +42,7 @@ func cmdServe() error {
 	}
 	usageLogPath := filepath.Join(cfg.WorkspacePath(), "usage.jsonl")
 	loggingProvider := provider.NewLoggingProvider(inner, usageLogPath)
-	llmProvider := provider.NewPromptRewriteProvider(loggingProvider)
+	llmProvider := provider.NewPromptRewriteProvider(loggingProvider, cfg.WorkspacePath())
 	fmt.Printf("Provider chain: PromptRewrite → Logging(%s) → %T\n", usageLogPath, inner)
 
 	// 3. Message Bus 作成（Dual Bus + Bridge パターン）
