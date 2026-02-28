@@ -133,9 +133,13 @@ func cmdServe() error {
 	// Agent Loop をバックグラウンドで起動
 	go agentLoop.Run(ctx)
 
-	// IdleMonitor を起動（セッション idle timeout: 30分、チェック間隔: 1分）
+	// IdleMonitor を起動
 	sessionsDirs := isession.SessionsDirsFromConfig(cfg)
-	idleTimeout := 30 * time.Minute
+	idleTimeoutMin := cfg.Agents.Defaults.IdleTimeoutMinutes
+	if idleTimeoutMin <= 0 {
+		idleTimeoutMin = 30
+	}
+	idleTimeout := time.Duration(idleTimeoutMin) * time.Minute
 	idleMonitor := isession.NewIdleMonitor(sessionsDirs, idleTimeout, 1*time.Minute)
 	idleMonitor.Start(ctx)
 	slog.Info("idle monitor started", "component", "idle-monitor", "timeout", idleTimeout, "dirs", sessionsDirs)
