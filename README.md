@@ -7,7 +7,7 @@ Discord 経由で会話し、会話ログを自動記録・定期的に振り返
 ## 技術スタック
 
 - **言語**: Go 1.25+
-- **チャットエンジン**: [PicoClaw](https://github.com/sipeed/picoclaw) (`pkg/` を Go ライブラリとして import)
+- **チャットエンジン**: [PicoClaw](https://github.com/sipeed/picoclaw) (`pkg/` を Go ライブラリとして import) — Fork: [picoclaw-nest](https://github.com/ameyamatmk/picoclaw-nest)
 - **メッセージング**: Discord
 - **LLM**: Anthropic Claude (Sonnet 4)
 - **Web コンソール**: Go `html/template` + HTMX + Pico CSS
