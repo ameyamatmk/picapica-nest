@@ -1,6 +1,50 @@
 {{define "distill_content"}}
 <div class="report-layout">
     <aside class="report-list">
+        {{if eq .Tab "daily"}}
+        {{/* 日次: カレンダー表示 */}}
+        {{with .Calendar}}
+        <div class="calendar">
+            <div class="calendar-nav">
+                <a href="#"
+                   hx-get="/distill/content?tab=daily&year={{.PrevYear}}&month={{.PrevMonth}}"
+                   hx-target="#report-area"
+                   aria-label="前月">&laquo;</a>
+                <strong>{{.MonthName}}</strong>
+                <a href="#"
+                   hx-get="/distill/content?tab=daily&year={{.NextYear}}&month={{.NextMonth}}"
+                   hx-target="#report-area"
+                   aria-label="翌月">&raquo;</a>
+            </div>
+            <div class="calendar-grid">
+                <div class="calendar-header">日</div>
+                <div class="calendar-header">月</div>
+                <div class="calendar-header">火</div>
+                <div class="calendar-header">水</div>
+                <div class="calendar-header">木</div>
+                <div class="calendar-header">金</div>
+                <div class="calendar-header">土</div>
+                {{range .Weeks}}
+                    {{range .}}
+                        {{if eq .Day 0}}
+                        <div class="calendar-cell empty"></div>
+                        {{else if .HasReport}}
+                        <a class="calendar-cell has-report{{if .Selected}} selected{{end}}"
+                           href="#"
+                           hx-get="/distill/content?tab=daily&year={{$.Calendar.Year}}&month={{$.Calendar.Month}}&file={{.FileName}}"
+                           hx-target="#report-area">
+                            {{.Day}}
+                        </a>
+                        {{else}}
+                        <div class="calendar-cell">{{.Day}}</div>
+                        {{end}}
+                    {{end}}
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+        {{else}}
+        {{/* 週次・月次: リスト表示 */}}
         <nav>
             {{range .Files}}
             <a href="#" hx-get="/distill/content?tab={{$.Tab}}&file={{.Name}}"
@@ -12,6 +56,7 @@
             <p><em>レポートがありません</em></p>
             {{end}}
         </nav>
+        {{end}}
     </aside>
     <article class="report-content">
         {{if .Content}}
