@@ -1,0 +1,29 @@
+{{define "workspace_content"}}
+<div class="report-layout">
+    <aside class="report-list">
+        <nav>
+            {{range .Files}}
+            {{if .IsDir}}
+            <div style="padding: 0.25rem 0.5rem; font-size: 0.8rem; color: var(--pico-muted-color); margin-top: 0.5rem;">
+                {{.Name}}/
+            </div>
+            {{else}}
+            <a href="#" hx-get="/workspace/content?file={{.Path}}"
+               hx-target="#workspace-area"
+               {{if eq .Path $.CurrentFile}}aria-current="page"{{end}}
+               style="{{if gt .Depth 0}}padding-left: 1.5rem;{{end}}">
+                {{.Name}}
+            </a>
+            {{end}}
+            {{end}}
+        </nav>
+    </aside>
+    <article class="report-content">
+        {{if .Content}}
+            {{.Content}}
+        {{else}}
+            <p><em>ファイルを選択してください</em></p>
+        {{end}}
+    </article>
+</div>
+{{end}}

@@ -1,0 +1,69 @@
+{{define "applog_content"}}
+<style>
+    .log-level-ERROR td { color: var(--pico-del-color); }
+    .log-level-WARN td { color: #b8860b; }
+    .log-level-DEBUG td { color: var(--pico-muted-color); }
+    .report-content table { font-size: 0.85rem; }
+    .report-content table td, .report-content table th { padding: 0.3rem 0.5rem; }
+    .report-content table tbody tr { line-height: 1.3; }
+    .report-list select { padding: 0.3rem 0.5rem; font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .report-list label { font-size: 0.85rem; margin-bottom: 0.2rem; }
+    .report-list details summary { font-size: 0.9rem; padding: 0.3rem 0; }
+</style>
+<div class="report-layout">
+    <aside class="report-list">
+        <!-- フィルタ -->
+        <details open>
+            <summary>フィルタ</summary>
+            <label>レベル</label>
+            <select hx-get="/logs/entries" hx-target="#log-area"
+                    hx-include="[name='date'],[name='component']"
+                    name="level">
+                <option value="">すべて</option>
+                {{range .Levels}}
+                <option value="{{.}}" {{if eq . $.FilterLevel}}selected{{end}}>{{.}}</option>
+                {{end}}
+            </select>
+            <label>コンポーネント</label>
+            <select hx-get="/logs/entries" hx-target="#log-area"
+                    hx-include="[name='date'],[name='level']"
+                    name="component">
+                <option value="">すべて</option>
+                {{range .Components}}
+                <option value="{{.}}" {{if eq . $.FilterComponent}}selected{{end}}>{{.}}</option>
+                {{end}}
+            </select>
+            <input type="hidden" name="date" value="{{.CurrentDate}}">
+        </details>
+        <!-- 日付リスト -->
+        <nav>
+            {{range .Dates}}
+            <a href="#" hx-get="/logs/entries?date={{.FileName}}"
+               hx-target="#log-area"
+               {{if eq .FileName $.CurrentDate}}aria-current="page"{{end}}>
+                {{.Label}}
+            </a>
+            {{end}}
+        </nav>
+    </aside>
+    <article class="report-content">
+        {{if .Entries}}
+        <table>
+            <thead><tr><th>時刻</th><th>レベル</th><th>コンポーネント</th><th>メッセージ</th></tr></thead>
+            <tbody>
+            {{range .Entries}}
+            <tr class="log-level-{{.Level}}">
+                <td style="white-space:nowrap">{{.Time}}</td>
+                <td>{{.Level}}</td>
+                <td>{{.Component}}</td>
+                <td>{{.Message}}{{range $k, $v := .Extra}} <small><strong>{{$k}}</strong>={{$v}}</small>{{end}}</td>
+            </tr>
+            {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <p><em>ログエントリがありません</em></p>
+        {{end}}
+    </article>
+</div>
+{{end}}

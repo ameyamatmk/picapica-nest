@@ -1,0 +1,101 @@
+{{define "content"}}
+<style>
+    .dashboard-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .dashboard-cards article {
+        margin: 0;
+    }
+    .dashboard-cards article header {
+        padding: 0.75rem 1rem;
+    }
+    .dashboard-cards article header small {
+        color: var(--pico-muted-color);
+    }
+    .report-preview {
+        font-size: 0.9rem;
+        color: var(--pico-muted-color);
+        line-height: 1.5;
+    }
+    .usage-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        text-align: center;
+    }
+    .usage-grid .metric {
+        padding: 0.5rem;
+    }
+    .usage-grid .metric .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--pico-primary);
+    }
+    .usage-grid .metric .label {
+        font-size: 0.85rem;
+        color: var(--pico-muted-color);
+    }
+    @media (max-width: 768px) {
+        .dashboard-cards { grid-template-columns: 1fr; }
+        .usage-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+
+<h2>ダッシュボード</h2>
+
+{{/* 上段: 蒸留レポート */}}
+<h3>蒸留レポート</h3>
+<div class="dashboard-cards">
+    {{range .LatestReports}}
+    <article>
+        <header>
+            <strong>{{.TabLabel}}</strong>
+            {{if .Label}}<br><small>{{.Label}}</small>{{end}}
+        </header>
+        {{if .Preview}}
+        <p class="report-preview">{{.Preview}}</p>
+        {{else if .FileName}}
+        <p><em>プレビューなし</em></p>
+        {{else}}
+        <p><em>レポートなし</em></p>
+        {{end}}
+        {{if .FileName}}
+        <footer>
+            <a href="/distill?tab={{.Tab}}&file={{.FileName}}">詳細を見る</a>
+        </footer>
+        {{end}}
+    </article>
+    {{end}}
+</div>
+
+{{/* 中段: Usage サマリ */}}
+<h3>Usage サマリ</h3>
+<article>
+    {{if .UsageSummary}}
+    <div class="usage-grid">
+        <div class="metric">
+            <div class="value">{{comma .UsageSummary.TodayCalls}}</div>
+            <div class="label">本日の呼び出し</div>
+        </div>
+        <div class="metric">
+            <div class="value">{{comma .UsageSummary.TodayTokens}}</div>
+            <div class="label">本日のトークン</div>
+        </div>
+        <div class="metric">
+            <div class="value">{{comma .UsageSummary.WeekCalls}}</div>
+            <div class="label">直近7日間の呼び出し</div>
+        </div>
+        <div class="metric">
+            <div class="value">{{comma .UsageSummary.WeekTokens}}</div>
+            <div class="label">直近7日間のトークン</div>
+        </div>
+    </div>
+    {{else}}
+    <p><em>データなし</em></p>
+    {{end}}
+</article>
+
+{{end}}

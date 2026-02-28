@@ -29,7 +29,7 @@ func TestFormatComma(t *testing.T) {
 	}
 }
 
-func TestHandleIndex_RedirectsToDistill(t *testing.T) {
+func TestHandleIndex_RedirectsToDashboard(t *testing.T) {
 	// Given: Console サーバー
 	s := NewServer(t.TempDir())
 
@@ -38,12 +38,12 @@ func TestHandleIndex_RedirectsToDistill(t *testing.T) {
 	rec := httptest.NewRecorder()
 	s.server.Handler.ServeHTTP(rec, req)
 
-	// Then: /distill にリダイレクト
+	// Then: /dashboard にリダイレクト
 	if rec.Code != http.StatusFound {
 		t.Errorf("expected 302, got %d", rec.Code)
 	}
-	if loc := rec.Header().Get("Location"); loc != "/distill" {
-		t.Errorf("expected redirect to /distill, got %q", loc)
+	if loc := rec.Header().Get("Location"); loc != "/dashboard" {
+		t.Errorf("expected redirect to /dashboard, got %q", loc)
 	}
 }
 
