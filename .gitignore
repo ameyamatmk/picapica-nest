@@ -18,6 +18,7 @@ workspace/memory/monthly/
 workspace/sessions/
 workspace/state/
 usage.jsonl
+channel_labels.json
 
 # IDE
 .vscode/
