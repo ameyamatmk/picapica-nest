@@ -74,12 +74,12 @@ func (cl *ConversationLogger) bridgeInbound(ctx context.Context) {
 
 		// 内部チャンネルのメッセージはログに記録しない
 		if !isLoggableChannel(msg.Channel) {
-			cl.agentBus.PublishInbound(msg)
+			cl.agentBus.PublishInbound(ctx, msg)
 			continue
 		}
 
 		cl.logInbound(msg)
-		cl.agentBus.PublishInbound(msg)
+		cl.agentBus.PublishInbound(ctx, msg)
 	}
 }
 
@@ -93,12 +93,12 @@ func (cl *ConversationLogger) bridgeOutbound(ctx context.Context) {
 
 		// 内部チャンネルのメッセージはログに記録しない
 		if !isLoggableChannel(msg.Channel) {
-			cl.channelBus.PublishOutbound(msg)
+			cl.channelBus.PublishOutbound(ctx, msg)
 			continue
 		}
 
 		cl.logOutbound(msg)
-		cl.channelBus.PublishOutbound(msg)
+		cl.channelBus.PublishOutbound(ctx, msg)
 	}
 }
 
