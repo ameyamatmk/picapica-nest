@@ -218,7 +218,10 @@ func restoreBindings(store *binding.Store, cfg *config.Config, agentLoop *agent.
 
 		// Agent が未登録なら動的作成
 		if _, ok := agentLoop.Registry().GetAgent(agentID); !ok {
-			agentCfg := &config.AgentConfig{ID: agentID}
+			agentCfg := &config.AgentConfig{
+				ID:        agentID,
+				Workspace: filepath.Join(cfg.Agents.Defaults.Workspace, "agents", agentID),
+			}
 			instance := agent.NewAgentInstance(agentCfg, &cfg.Agents.Defaults, cfg, llmProvider)
 			if err := agentLoop.Registry().AddAgent(instance); err != nil {
 				slog.Error("failed to restore agent", "agent_id", agentID, "error", err)

@@ -127,15 +127,20 @@ func (h *Handler) handleBind(s *discordgo.Session, i *discordgo.InteractionCreat
 	defer h.mu.Unlock()
 
 	// 既存 Binding チェック
-	if existing := h.bindingStore.FindByChannel(channelID); existing != nil {
-		respondEphemeral(s, i, fmt.Sprintf(
-			"This channel is already bound to agent `%s`.\nUse `/unbind` first to reassign.",
-			existing.AgentID,
-		))
-		return
-	}
-
 	normalizedID := routing.NormalizeAgentID(agentID)
+
+	// 既存 binding があれば付け替え
+	var oldAgentID string
+	if existing := h.bindingStore.FindByChannel(channelID); existing != nil {
+		if existing.AgentID == normalizedID {
+			respondEphemeral(s, i, fmt.Sprintf("This channel is already bound to agent `%s`.", normalizedID))
+			return
+		}
+		oldAgentID = existing.AgentID
+		h.bindingStore.Remove(channelID)
+		h.removeConfigBinding(channelID)
+		slog.Info("slash: rebinding channel", "old_agent", oldAgentID, "new_agent", normalizedID, "channel_id", channelID)
+	}
 
 	// Agent が未登録なら新規作成
 	if _, ok := h.agentLoop.Registry().GetAgent(normalizedID); !ok {
@@ -159,10 +164,17 @@ func (h *Handler) handleBind(s *discordgo.Session, i *discordgo.InteractionCreat
 		slog.Error("slash: failed to save binding store", "error", err)
 	}
 
-	respondEphemeral(s, i, fmt.Sprintf(
-		"Agent `%s` bound to this channel.\nMessages here will be handled by this agent.",
-		normalizedID,
-	))
+	if oldAgentID != "" {
+		respondEphemeral(s, i, fmt.Sprintf(
+			"Agent switched: `%s` → `%s`\nMessages here will now be handled by `%s`.",
+			oldAgentID, normalizedID, normalizedID,
+		))
+	} else {
+		respondEphemeral(s, i, fmt.Sprintf(
+			"Agent `%s` bound to this channel.\nMessages here will be handled by this agent.",
+			normalizedID,
+		))
+	}
 	slog.Info("slash: channel bound",
 		"agent_id", normalizedID,
 		"channel_id", channelID,
@@ -403,7 +415,8 @@ func (h *Handler) handleStatus(s *discordgo.Session, i *discordgo.InteractionCre
 // createAgent は新しい Agent を動的に作成・登録する。
 func (h *Handler) createAgent(agentID string) error {
 	agentCfg := &config.AgentConfig{
-		ID: agentID,
+		ID:        agentID,
+		Workspace: filepath.Join(h.cfg.Agents.Defaults.Workspace, "agents", agentID),
 	}
 	defaults := &h.cfg.Agents.Defaults
 
