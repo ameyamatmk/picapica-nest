@@ -15,6 +15,7 @@ type DailyParams struct {
 	LogsDir    string // logs/ ディレクトリのパス
 	OutputDir  string // memory/daily/ のパス
 	PromptPath string // プロンプトテンプレートのパス
+	LabelFn    func(string) string // ChatID → 表示名変換（nil なら ChatID のまま）
 }
 
 // Summarizer は LLM 呼び出しの関数型（テスト用に差し替え可能）。
@@ -42,8 +43,8 @@ func RunDailyWith(ctx context.Context, params DailyParams, summarize Summarizer)
 	}
 	slog.Info("collected log entries", "component", "hindsight", "count", len(entries), "date", dateStr)
 
-	// 2. transcript 生成
-	transcript := FormatTranscript(entries)
+	// 2. transcript 生成（チャンネル別セクション対応）
+	transcript := FormatTranscriptByChannel(entries, params.LabelFn)
 
 	// 3. プロンプト読み込み
 	promptData := PromptData{

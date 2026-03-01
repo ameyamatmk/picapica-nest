@@ -7,7 +7,7 @@ require (
 	github.com/yuin/goldmark v1.7.16
 )
 
-replace github.com/sipeed/picoclaw => github.com/ameyamatmk/picoclaw-nest v0.2.0-nest.1
+replace github.com/sipeed/picoclaw => github.com/ameyamatmk/picoclaw-nest v0.2.0-nest.2
 
 require (
 	github.com/adhocore/gronx v1.19.6 // indirect

@@ -258,3 +258,104 @@ func TestFormatTranscript_InvalidTimestamp(t *testing.T) {
 		t.Errorf("expected raw timestamp fallback, got:\n%s", result)
 	}
 }
+
+func TestGroupByChannel(t *testing.T) {
+	// Given: 異なるチャンネルのエントリ
+	entries := []logging.LogEntry{
+		{Timestamp: "2026-02-27T01:00:00Z", Direction: "in", ChatID: "111", Content: "a"},
+		{Timestamp: "2026-02-27T01:00:01Z", Direction: "in", ChatID: "222", Content: "b"},
+		{Timestamp: "2026-02-27T01:00:02Z", Direction: "in", ChatID: "111", Content: "c"},
+		{Timestamp: "2026-02-27T01:00:03Z", Direction: "in", Content: "d"}, // ChatID 空
+	}
+
+	// When
+	grouped := GroupByChannel(entries)
+
+	// Then
+	if len(grouped) != 3 {
+		t.Fatalf("expected 3 groups, got %d", len(grouped))
+	}
+	if len(grouped["111"]) != 2 {
+		t.Errorf("expected 2 entries in '111', got %d", len(grouped["111"]))
+	}
+	if len(grouped["222"]) != 1 {
+		t.Errorf("expected 1 entry in '222', got %d", len(grouped["222"]))
+	}
+	if len(grouped[""]) != 1 {
+		t.Errorf("expected 1 entry in '', got %d", len(grouped[""]))
+	}
+}
+
+func TestFormatTranscriptByChannel_MultipleChannels(t *testing.T) {
+	// Given: 複数チャンネルのエントリ
+	entries := []logging.LogEntry{
+		{Timestamp: "2026-02-27T01:00:00Z", Direction: "in", ChatID: "111", Sender: "user1", Content: "hello"},
+		{Timestamp: "2026-02-27T01:00:01Z", Direction: "out", ChatID: "111", Content: "hi!"},
+		{Timestamp: "2026-02-27T02:00:00Z", Direction: "in", ChatID: "222", Sender: "user2", Content: "work log"},
+	}
+
+	labelFn := func(id string) string {
+		switch id {
+		case "111":
+			return "#general"
+		case "222":
+			return "#work-log"
+		}
+		return id
+	}
+
+	// When
+	result := FormatTranscriptByChannel(entries, labelFn)
+
+	// Then: セクションが分かれている
+	if !strings.Contains(result, "## #general") {
+		t.Errorf("expected #general section, got:\n%s", result)
+	}
+	if !strings.Contains(result, "## #work-log") {
+		t.Errorf("expected #work-log section, got:\n%s", result)
+	}
+	if !strings.Contains(result, "hello") {
+		t.Error("expected 'hello' in output")
+	}
+	if !strings.Contains(result, "work log") {
+		t.Error("expected 'work log' in output")
+	}
+}
+
+func TestFormatTranscriptByChannel_SingleChannel(t *testing.T) {
+	// Given: 全エントリが同一チャンネル
+	entries := []logging.LogEntry{
+		{Timestamp: "2026-02-27T01:00:00Z", Direction: "in", ChatID: "111", Sender: "user", Content: "hello"},
+		{Timestamp: "2026-02-27T01:00:01Z", Direction: "out", ChatID: "111", Content: "hi!"},
+	}
+
+	// When: FormatTranscriptByChannel を呼ぶ
+	result := FormatTranscriptByChannel(entries, nil)
+
+	// Then: セクション見出しなしのフラット出力（FormatTranscript と同じ）
+	if strings.Contains(result, "##") {
+		t.Errorf("expected flat output for single channel, got:\n%s", result)
+	}
+	if !strings.Contains(result, "hello") {
+		t.Error("expected content to be present")
+	}
+}
+
+func TestFormatTranscriptByChannel_NilLabelFn(t *testing.T) {
+	// Given: 複数チャンネル、labelFn は nil
+	entries := []logging.LogEntry{
+		{Timestamp: "2026-02-27T01:00:00Z", Direction: "in", ChatID: "111", Sender: "user", Content: "a"},
+		{Timestamp: "2026-02-27T01:00:01Z", Direction: "in", ChatID: "222", Sender: "user", Content: "b"},
+	}
+
+	// When: labelFn = nil
+	result := FormatTranscriptByChannel(entries, nil)
+
+	// Then: ChatID がそのまま見出しに使われる
+	if !strings.Contains(result, "## 111") {
+		t.Errorf("expected '## 111' section, got:\n%s", result)
+	}
+	if !strings.Contains(result, "## 222") {
+		t.Errorf("expected '## 222' section, got:\n%s", result)
+	}
+}

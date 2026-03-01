@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ameyamatmk/picapica-nest/internal/applog"
+	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 	"github.com/ameyamatmk/picapica-nest/internal/hindsight"
 	"github.com/sipeed/picoclaw/pkg/config"
 )
@@ -64,6 +65,7 @@ func cmdHindsightDaily(args []string) error {
 		LogsDir:    filepath.Join(workspace, "logs"),
 		OutputDir:  filepath.Join(workspace, "memory", "daily"),
 		PromptPath: filepath.Join(workspace, "prompts", "daily_hindsight.md"),
+		LabelFn:    buildLabelFn(cfg),
 	}
 
 	slog.Info("running daily hindsight", "component", "hindsight", "date", targetDate.Format("2006-01-02"))
@@ -166,4 +168,30 @@ func cmdHindsightMonthly(args []string) error {
 
 	slog.Info("running monthly hindsight", "component", "hindsight", "month", fmt.Sprintf("%d-%02d", year, month))
 	return hindsight.RunMonthly(context.Background(), params)
+}
+
+// buildLabelFn は ChatID からチャンネル名を解決する関数を返す。
+// Discord が有効で token が設定されている場合、Discord API で解決を試みる。
+func buildLabelFn(cfg *config.Config) func(string) string {
+	if !cfg.Channels.Discord.Enabled || cfg.Channels.Discord.Token == "" {
+		return nil
+	}
+
+	labelStorePath := filepath.Join(cfg.WorkspacePath(), "channel_labels.json")
+	store, err := channellabel.NewStore(labelStorePath)
+	if err != nil {
+		slog.Warn("failed to load channel label store for hindsight", "error", err)
+		return nil
+	}
+
+	resolver := channellabel.NewResolver(cfg.Channels.Discord.Token, store)
+	return func(chatID string) string {
+		// Resolver は "discord_<chatID>" 形式のディレクトリ名を期待する
+		dirName := "discord_" + chatID
+		label, err := resolver.Resolve(dirName)
+		if err != nil {
+			return chatID
+		}
+		return "#" + label
+	}
 }
