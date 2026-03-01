@@ -16,6 +16,9 @@ import (
 	"github.com/sipeed/picoclaw/pkg/bus"
 )
 
+// jst は日本標準時 (UTC+9)。
+var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
+
 // LogEntry は JSONL ファイルに書き込む1行分のデータ。
 type LogEntry struct {
 	Timestamp string `json:"ts"`
@@ -107,7 +110,7 @@ func (cl *ConversationLogger) bridgeOutbound(ctx context.Context) {
 // logInbound は inbound メッセージをファイルに記録する。
 func (cl *ConversationLogger) logInbound(msg bus.InboundMessage) {
 	entry := LogEntry{
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Timestamp: time.Now().In(jst).Format(time.RFC3339),
 		Direction: "in",
 		Channel:   msg.Channel,
 		ChatID:    msg.ChatID,
@@ -120,7 +123,7 @@ func (cl *ConversationLogger) logInbound(msg bus.InboundMessage) {
 // logOutbound は outbound メッセージをファイルに記録する。
 func (cl *ConversationLogger) logOutbound(msg bus.OutboundMessage) {
 	entry := LogEntry{
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Timestamp: time.Now().In(jst).Format(time.RFC3339),
 		Direction: "out",
 		Channel:   msg.Channel,
 		ChatID:    msg.ChatID,
@@ -143,7 +146,7 @@ func (cl *ConversationLogger) writeEntry(channel, chatID string, entry LogEntry)
 	dirName := fmt.Sprintf("%s_%s", channel, safeChatID)
 	dirPath := filepath.Join(cl.basePath, dirName)
 
-	date := time.Now().UTC().Format("2006-01-02")
+	date := time.Now().In(jst).Format("2006-01-02")
 	filePath := filepath.Join(dirPath, date+".jsonl")
 
 	cl.mu.Lock()
