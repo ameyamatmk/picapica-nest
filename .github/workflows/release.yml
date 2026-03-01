@@ -1,52 +1,19 @@
-name: Create Tag and Release
+name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag (required, e.g. v0.1.0)"
-        required: true
-        type: string
-      prerelease:
-        description: "Mark as pre-release"
-        required: false
-        type: boolean
-        default: false
-      draft:
-        description: "Create as draft"
-        required: false
-        type: boolean
-        default: false
+  push:
+    tags:
+      - "v*"
 
 jobs:
-  create-tag:
-    name: Create Git Tag
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Create and push tag
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ inputs.tag }}" -m "Release ${{ inputs.tag }}"
-          git push origin "${{ inputs.tag }}"
-
   build-binaries:
     name: Build Release Binaries
-    needs: create-tag
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ github.ref_name }}
 
       - name: Setup Go from go.mod
         uses: actions/setup-go@v5
@@ -72,7 +39,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [create-tag, build-binaries]
+    needs: build-binaries
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -88,10 +55,8 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag }}
-          name: ${{ inputs.tag }}
-          draft: ${{ inputs.draft }}
-          prerelease: ${{ inputs.prerelease }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           files: |
             release-artifacts/**/*
           generate_release_notes: true
