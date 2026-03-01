@@ -76,30 +76,35 @@ func (h *Handler) RegisterCommands(guildID string) error {
 // HandleInteraction は InteractionCreate イベントのハンドラ。
 // discordgo.Session.AddHandler() で登録する。
 func (h *Handler) HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.Type != discordgo.InteractionApplicationCommand {
-		return
-	}
+	switch i.Type {
+	case discordgo.InteractionApplicationCommand:
+		data := i.ApplicationCommandData()
 
-	data := i.ApplicationCommandData()
-
-	// Guild コマンドの自動登録（まだ未登録の Guild の場合）
-	if i.GuildID != "" {
-		if err := h.RegisterCommands(i.GuildID); err != nil {
-			slog.Error("slash: auto-register commands failed", "guild_id", i.GuildID, "error", err)
+		// Guild コマンドの自動登録（まだ未登録の Guild の場合）
+		if i.GuildID != "" {
+			if err := h.RegisterCommands(i.GuildID); err != nil {
+				slog.Error("slash: auto-register commands failed", "guild_id", i.GuildID, "error", err)
+			}
 		}
-	}
 
-	switch data.Name {
-	case "bind":
-		h.handleBind(s, i)
-	case "unbind":
-		h.handleUnbind(s, i)
-	case "soul":
-		h.handleSoul(s, i)
-	case "status":
-		h.handleStatus(s, i)
-	default:
-		respondEphemeral(s, i, "Unknown command: "+data.Name)
+		switch data.Name {
+		case "bind":
+			h.handleBind(s, i)
+		case "unbind":
+			h.handleUnbind(s, i)
+		case "soul":
+			h.handleSoul(s, i)
+		case "status":
+			h.handleStatus(s, i)
+		default:
+			respondEphemeral(s, i, "Unknown command: "+data.Name)
+		}
+
+	case discordgo.InteractionModalSubmit:
+		data := i.ModalSubmitData()
+		if strings.HasPrefix(data.CustomID, "soul_edit:") {
+			h.handleSoulEditSubmit(s, i)
+		}
 	}
 }
 
@@ -198,10 +203,13 @@ func (h *Handler) handleUnbind(s *discordgo.Session, i *discordgo.InteractionCre
 	)
 }
 
+const soulExtraFileName = "SOUL_EXTRA.md"
+const soulSeparator = "\n\n---\n\n"
+
 func (h *Handler) handleSoul(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	data := i.ApplicationCommandData()
 	if len(data.Options) == 0 {
-		respondEphemeral(s, i, "Subcommand required: `view` or `edit`")
+		respondEphemeral(s, i, "Subcommand required: `view`, `edit`, or `reset`")
 		return
 	}
 
@@ -221,43 +229,141 @@ func (h *Handler) handleSoul(s *discordgo.Session, i *discordgo.InteractionCreat
 		return
 	}
 
-	soulPath := filepath.Join(instance.Workspace, "SOUL.md")
-
 	switch sub.Name {
 	case "view":
-		content, err := os.ReadFile(soulPath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				respondEphemeral(s, i, fmt.Sprintf("Agent `%s` has no SOUL.md yet.", entry.AgentID))
-			} else {
-				respondEphemeral(s, i, fmt.Sprintf("Failed to read SOUL.md: %s", err))
-			}
+		extraPath := filepath.Join(instance.Workspace, soulExtraFileName)
+		content, err := os.ReadFile(extraPath)
+		if err != nil || len(strings.TrimSpace(string(content))) == 0 {
+			respondEphemeral(s, i, fmt.Sprintf("Agent `%s` has no extra instructions.", entry.AgentID))
 			return
 		}
-		// Discord は 2000 文字制限
 		text := string(content)
 		if len(text) > 1900 {
 			text = text[:1900] + "\n... (truncated)"
 		}
-		respondEphemeral(s, i, fmt.Sprintf("**SOUL.md** for `%s`:\n```\n%s\n```", entry.AgentID, text))
+		respondEphemeral(s, i, fmt.Sprintf("**Extra instructions** for `%s`:\n```\n%s\n```", entry.AgentID, text))
 
 	case "edit":
-		opt := getSubOption(sub, "content")
-		if opt == nil {
-			respondEphemeral(s, i, "content is required")
+		// 現在の SOUL_EXTRA.md を読み込んで Modal にプリフィル
+		extraPath := filepath.Join(instance.Workspace, soulExtraFileName)
+		currentExtra := ""
+		if data, err := os.ReadFile(extraPath); err == nil {
+			currentExtra = string(data)
+		}
+
+		if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseModal,
+			Data: &discordgo.InteractionResponseData{
+				CustomID: "soul_edit:" + channelID,
+				Title:    "追加指示の編集 (" + entry.AgentID + ")",
+				Components: []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.TextInput{
+								CustomID:    "soul_content",
+								Label:       "追加指示",
+								Style:       discordgo.TextInputParagraph,
+								Placeholder: "このエージェントへの追加指示を入力...",
+								Value:       currentExtra,
+								Required:    true,
+								MaxLength:   4000,
+							},
+						},
+					},
+				},
+			},
+		}); err != nil {
+			slog.Error("slash: failed to show modal", "error", err)
+		}
+
+	case "reset":
+		extraPath := filepath.Join(instance.Workspace, soulExtraFileName)
+		os.Remove(extraPath)
+
+		// SOUL.md をテンプレに復元
+		if err := h.rebuildSoulMD(instance.Workspace, ""); err != nil {
+			respondEphemeral(s, i, fmt.Sprintf("Failed to reset SOUL.md: %s", err))
 			return
 		}
-		newContent := opt.StringValue()
-		if err := os.WriteFile(soulPath, []byte(newContent), 0o644); err != nil {
-			respondEphemeral(s, i, fmt.Sprintf("Failed to write SOUL.md: %s", err))
-			return
-		}
-		respondEphemeral(s, i, fmt.Sprintf("SOUL.md for `%s` updated.", entry.AgentID))
-		slog.Info("slash: SOUL.md updated",
-			"agent_id", entry.AgentID,
-			"length", len(newContent),
-		)
+		respondEphemeral(s, i, fmt.Sprintf("Agent `%s` extra instructions cleared. SOUL.md restored to default.", entry.AgentID))
+		slog.Info("slash: SOUL.md reset", "agent_id", entry.AgentID)
 	}
+}
+
+// handleSoulEditSubmit は Modal Submit を処理する。
+func (h *Handler) handleSoulEditSubmit(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	data := i.ModalSubmitData()
+
+	// customID = "soul_edit:<channelID>"
+	channelID := strings.TrimPrefix(data.CustomID, "soul_edit:")
+
+	entry := h.bindingStore.FindByChannel(channelID)
+	if entry == nil {
+		respondEphemeral(s, i, "This channel has no agent binding.")
+		return
+	}
+
+	instance, ok := h.agentLoop.Registry().GetAgent(entry.AgentID)
+	if !ok {
+		respondEphemeral(s, i, fmt.Sprintf("Agent `%s` not found.", entry.AgentID))
+		return
+	}
+
+	// Modal から入力内容を取得
+	var extraContent string
+	for _, comp := range data.Components {
+		row, ok := comp.(*discordgo.ActionsRow)
+		if !ok {
+			continue
+		}
+		for _, rowComp := range row.Components {
+			input, ok := rowComp.(*discordgo.TextInput)
+			if ok && input.CustomID == "soul_content" {
+				extraContent = input.Value
+			}
+		}
+	}
+
+	// SOUL_EXTRA.md に保存
+	extraPath := filepath.Join(instance.Workspace, soulExtraFileName)
+	if err := os.WriteFile(extraPath, []byte(extraContent), 0o644); err != nil {
+		respondEphemeral(s, i, fmt.Sprintf("Failed to save extra instructions: %s", err))
+		return
+	}
+
+	// SOUL.md を再生成（テンプレ + 追加指示）
+	if err := h.rebuildSoulMD(instance.Workspace, extraContent); err != nil {
+		respondEphemeral(s, i, fmt.Sprintf("Failed to rebuild SOUL.md: %s", err))
+		return
+	}
+
+	respondEphemeral(s, i, fmt.Sprintf("Agent `%s` extra instructions updated.", entry.AgentID))
+	slog.Info("slash: SOUL_EXTRA.md updated",
+		"agent_id", entry.AgentID,
+		"length", len(extraContent),
+	)
+}
+
+// rebuildSoulMD はテンプレ SOUL.md + 追加指示を結合して Agent の SOUL.md に書き出す。
+func (h *Handler) rebuildSoulMD(workspace, extra string) error {
+	// テンプレートを読む
+	templatePath := filepath.Join(h.cfg.WorkspacePath(), "templates", "SOUL.md")
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		templatePath = filepath.Join(h.cfg.WorkspacePath(), "SOUL.md")
+	}
+
+	template, err := os.ReadFile(templatePath)
+	if err != nil {
+		return fmt.Errorf("read template: %w", err)
+	}
+
+	content := string(template)
+	if strings.TrimSpace(extra) != "" {
+		content += soulSeparator + extra
+	}
+
+	soulPath := filepath.Join(workspace, "SOUL.md")
+	return os.WriteFile(soulPath, []byte(content), 0o644)
 }
 
 func (h *Handler) handleStatus(s *discordgo.Session, i *discordgo.InteractionCreate) {

@@ -22,25 +22,22 @@ var commands = []*discordgo.ApplicationCommand{
 	},
 	{
 		Name:        "soul",
-		Description: "Agent の SOUL.md を表示・編集する",
+		Description: "Agent の追加指示を表示・編集する",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
 				Name:        "view",
-				Description: "SOUL.md を表示する",
+				Description: "現在の追加指示を表示する",
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
 				Name:        "edit",
-				Description: "SOUL.md を上書きする",
-				Options: []*discordgo.ApplicationCommandOption{
-					{
-						Type:        discordgo.ApplicationCommandOptionString,
-						Name:        "content",
-						Description: "新しい SOUL.md の内容",
-						Required:    true,
-					},
-				},
+				Description: "追加指示を編集する（モーダルが開きます）",
+			},
+			{
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+				Name:        "reset",
+				Description: "追加指示を削除してデフォルトに戻す",
 			},
 		},
 	},
