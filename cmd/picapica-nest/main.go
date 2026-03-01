@@ -164,6 +164,9 @@ func cmdServe() error {
 	if pricer != nil {
 		consoleOpts = append(consoleOpts, console.WithPricer(pricer))
 	}
+	if bindingStore != nil {
+		consoleOpts = append(consoleOpts, console.WithBindingStore(bindingStore))
+	}
 	consoleServer := console.NewServer(cfg.WorkspacePath(), consoleOpts...)
 	go func() {
 		if err := consoleServer.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {

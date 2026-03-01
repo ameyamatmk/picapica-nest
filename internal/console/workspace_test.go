@@ -165,15 +165,15 @@ func TestListWorkspaceFiles(t *testing.T) {
 		t.Fatalf("expected 7 entries, got %d: %+v", len(files), files)
 	}
 
-	// Then: ルートファイルはアルファベット順
-	if files[0].Path != "AGENTS.md" {
-		t.Errorf("expected first file 'AGENTS.md', got %q", files[0].Path)
+	// Then: ルートファイルは SOUL → AGENTS → MEMORY の順
+	if files[0].Path != "SOUL.md" {
+		t.Errorf("expected first file 'SOUL.md', got %q", files[0].Path)
 	}
-	if files[1].Path != "MEMORY.md" {
-		t.Errorf("expected second file 'MEMORY.md', got %q", files[1].Path)
+	if files[1].Path != "AGENTS.md" {
+		t.Errorf("expected second file 'AGENTS.md', got %q", files[1].Path)
 	}
-	if files[2].Path != "SOUL.md" {
-		t.Errorf("expected third file 'SOUL.md', got %q", files[2].Path)
+	if files[2].Path != "MEMORY.md" {
+		t.Errorf("expected third file 'MEMORY.md', got %q", files[2].Path)
 	}
 
 	// Then: prompts ディレクトリヘッダー

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ameyamatmk/picapica-nest/internal/binding"
 	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 	"github.com/ameyamatmk/picapica-nest/internal/pricing"
 )
@@ -32,6 +33,7 @@ type Server struct {
 	workspacePath string
 	resolver      *channellabel.Resolver
 	pricer        *pricing.Pricer
+	bindingStore  *binding.Store
 
 	// ページごとにテンプレートセットを保持する。
 	// "content" 定義の衝突を避けるため、layout + ページ固有テンプレートを組み合わせる。
@@ -54,6 +56,11 @@ func WithResolver(r *channellabel.Resolver) ServerOption {
 // WithPricer はコスト計算用の Pricer を設定する。
 func WithPricer(p *pricing.Pricer) ServerOption {
 	return func(s *Server) { s.pricer = p }
+}
+
+// WithBindingStore はチャンネル→Agent バインディング情報を設定する。
+func WithBindingStore(store *binding.Store) ServerOption {
+	return func(s *Server) { s.bindingStore = store }
 }
 
 // NewServer は新しい Web Console サーバーを作成する。
