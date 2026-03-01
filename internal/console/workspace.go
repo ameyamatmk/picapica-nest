@@ -125,39 +125,20 @@ func listWorkspaceFiles(workspacePath string) ([]workspaceFile, error) {
 		return nil, err
 	}
 
-	var rootFiles []workspaceFile
 	var subDirs []string
 
 	for _, e := range rootEntries {
 		if e.IsDir() {
 			name := e.Name()
-			// 除外ディレクトリをスキップ
-			if excludeDirs[name] {
-				continue
-			}
-			// ドットディレクトリをスキップ
-			if strings.HasPrefix(name, ".") {
+			if excludeDirs[name] || strings.HasPrefix(name, ".") {
 				continue
 			}
 			subDirs = append(subDirs, name)
-			continue
 		}
-		if !strings.HasSuffix(e.Name(), ".md") {
-			continue
-		}
-		rootFiles = append(rootFiles, workspaceFile{
-			Path:  e.Name(),
-			Name:  e.Name(),
-			IsDir: false,
-			Depth: 0,
-		})
 	}
 
-	// ルート .md ファイルをソート
-	slices.SortFunc(rootFiles, func(a, b workspaceFile) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-	files = append(files, rootFiles...)
+	// ルート .md ファイルを指定順序で追加
+	files = append(files, listOrderedFiles(workspacePath, "", rootFileOrder)...)
 
 	// サブディレクトリをソートして処理
 	slices.Sort(subDirs)
@@ -181,6 +162,13 @@ func listWorkspaceFiles(workspacePath string) ([]workspaceFile, error) {
 	return files, nil
 }
 
+
+// rootFileOrder はルート直下の .md ファイル表示順序。
+var rootFileOrder = []string{
+	"SOUL.md",
+	"AGENTS.md",
+	"MEMORY.md",
+}
 
 // promptsFileOrder は prompts/ ディレクトリ内のファイル表示順序。
 var promptsFileOrder = []string{
@@ -231,11 +219,17 @@ func listOrderedFiles(dirPath, dirName string, order []string) []workspaceFile {
 		if _, err := os.Stat(path); err != nil {
 			continue
 		}
+		relPath := name
+		depth := 0
+		if dirName != "" {
+			relPath = dirName + "/" + name
+			depth = 1
+		}
 		files = append(files, workspaceFile{
-			Path:  dirName + "/" + name,
+			Path:  relPath,
 			Name:  name,
 			IsDir: false,
-			Depth: 1,
+			Depth: depth,
 		})
 	}
 	return files
