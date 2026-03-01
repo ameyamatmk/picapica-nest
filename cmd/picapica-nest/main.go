@@ -12,12 +12,15 @@ import (
 	"time"
 
 	"github.com/ameyamatmk/picapica-nest/internal/applog"
+	"github.com/ameyamatmk/picapica-nest/internal/binding"
 	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 	"github.com/ameyamatmk/picapica-nest/internal/console"
 	"github.com/ameyamatmk/picapica-nest/internal/logging"
 	"github.com/ameyamatmk/picapica-nest/internal/pricing"
 	"github.com/ameyamatmk/picapica-nest/internal/provider"
 	isession "github.com/ameyamatmk/picapica-nest/internal/session"
+	"github.com/ameyamatmk/picapica-nest/internal/slash"
+	"github.com/bwmarrin/discordgo"
 	"github.com/sipeed/picoclaw/pkg/agent"
 	"github.com/sipeed/picoclaw/pkg/bus"
 	"github.com/sipeed/picoclaw/pkg/channels"
@@ -38,6 +41,12 @@ func configPath() string {
 func pricingConfigPath() string {
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".picapica-nest", "pricing.json")
+}
+
+// bindingStorePath は Binding 永続化ファイルのパスを返す。
+func bindingStorePath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".picapica-nest", "bindings.json")
 }
 
 func cmdServe() error {
@@ -103,10 +112,21 @@ func cmdServe() error {
 	// ConversationLogger のブリッジを起動（channelBus ↔ agentBus）
 	convLogger.Run(ctx)
 
+	// 7.5. Binding 復元（永続化されたチャンネル→Agent 割り当てを復元）
+	bindingStore, err := binding.LoadOrNew(bindingStorePath())
+	if err != nil {
+		slog.Error("failed to load binding store", "error", err)
+		bindingStore, _ = binding.LoadOrNew(filepath.Join(os.TempDir(), "picapica_bindings_fallback.json"))
+	}
+	restoreBindings(bindingStore, cfg, agentLoop, llmProvider)
+
 	// 8. 全チャンネル起動
 	if err := channelManager.StartAll(ctx); err != nil {
 		slog.Error("failed to start channels", "error", err)
 	}
+
+	// 8.5. Discord スラッシュコマンド設定
+	setupSlashCommands(channelManager, cfg, agentLoop, bindingStore, llmProvider)
 
 	// Health server をバックグラウンドで起動
 	go func() {
@@ -182,6 +202,67 @@ func cmdServe() error {
 	slog.Info("picapica-nest stopped")
 
 	return nil
+}
+
+// restoreBindings は永続化された Binding を cfg と AgentRegistry に復元する。
+func restoreBindings(store *binding.Store, cfg *config.Config, agentLoop *agent.AgentLoop, llmProvider providers.LLMProvider) {
+	entries := store.List()
+	if len(entries) == 0 {
+		return
+	}
+
+	slog.Info("restoring bindings", "count", len(entries))
+
+	for _, entry := range entries {
+		agentID := entry.AgentID
+
+		// Agent が未登録なら動的作成
+		if _, ok := agentLoop.Registry().GetAgent(agentID); !ok {
+			agentCfg := &config.AgentConfig{ID: agentID}
+			instance := agent.NewAgentInstance(agentCfg, &cfg.Agents.Defaults, cfg, llmProvider)
+			if err := agentLoop.Registry().AddAgent(instance); err != nil {
+				slog.Error("failed to restore agent", "agent_id", agentID, "error", err)
+				continue
+			}
+			agentLoop.RegisterToolsForAgent(agentID)
+			slog.Info("dynamic agent restored", "agent_id", agentID, "workspace", instance.Workspace)
+		}
+	}
+
+	// cfg.Bindings に追加
+	cfg.Bindings = append(cfg.Bindings, store.ToBindings()...)
+	slog.Info("bindings restored to config", "total_bindings", len(cfg.Bindings))
+}
+
+// sessionProvider は Discord Session を返すインターフェース。
+type sessionProvider interface {
+	Session() *discordgo.Session
+}
+
+// setupSlashCommands は Discord チャンネルからセッションを取得しスラッシュコマンドを設定する。
+func setupSlashCommands(
+	channelManager *channels.Manager,
+	cfg *config.Config,
+	agentLoop *agent.AgentLoop,
+	bindingStore *binding.Store,
+	llmProvider providers.LLMProvider,
+) {
+	ch, ok := channelManager.GetChannel("discord")
+	if !ok {
+		return
+	}
+
+	sp, ok := ch.(sessionProvider)
+	if !ok {
+		slog.Warn("discord channel does not expose Session()")
+		return
+	}
+
+	sess := sp.Session()
+	handler := slash.NewHandler(sess, cfg, agentLoop, bindingStore, llmProvider)
+	sess.AddHandler(handler.HandleInteraction)
+
+	slog.Info("slash commands handler registered", "component", "slash")
 }
 
 func main() {

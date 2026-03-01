@@ -20,6 +20,8 @@ import (
 type LogEntry struct {
 	Timestamp string `json:"ts"`
 	Direction string `json:"dir"`
+	Channel   string `json:"channel,omitempty"`
+	ChatID    string `json:"chat_id,omitempty"`
 	Sender    string `json:"sender,omitempty"`
 	Content   string `json:"content"`
 }
@@ -107,6 +109,8 @@ func (cl *ConversationLogger) logInbound(msg bus.InboundMessage) {
 	entry := LogEntry{
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		Direction: "in",
+		Channel:   msg.Channel,
+		ChatID:    msg.ChatID,
 		Sender:    msg.SenderID,
 		Content:   msg.Content,
 	}
@@ -118,6 +122,8 @@ func (cl *ConversationLogger) logOutbound(msg bus.OutboundMessage) {
 	entry := LogEntry{
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		Direction: "out",
+		Channel:   msg.Channel,
+		ChatID:    msg.ChatID,
 		Content:   msg.Content,
 	}
 	cl.writeEntry(msg.Channel, msg.ChatID, entry)

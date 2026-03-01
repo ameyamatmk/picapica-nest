@@ -128,6 +128,64 @@ func readJSONL(path string) ([]logging.LogEntry, error) {
 	return entries, nil
 }
 
+// GroupByChannel は LogEntry をチャンネル（channel_chatID）別にグルーピングする。
+// Channel/ChatID が空のエントリは "" キーにまとめる。
+func GroupByChannel(entries []logging.LogEntry) map[string][]logging.LogEntry {
+	grouped := make(map[string][]logging.LogEntry)
+	for _, entry := range entries {
+		key := ""
+		if entry.ChatID != "" {
+			key = entry.ChatID
+		}
+		grouped[key] = append(grouped[key], entry)
+	}
+	return grouped
+}
+
+// FormatTranscriptByChannel はチャンネル別にセクション分けされたトランスクリプトを生成する。
+// labelFn は ChatID → 表示名の変換関数（nil なら ChatID をそのまま使用）。
+func FormatTranscriptByChannel(entries []logging.LogEntry, labelFn func(string) string) string {
+	grouped := GroupByChannel(entries)
+
+	// チャンネル情報がないか、すべて同一チャンネルならフラットに出力
+	if len(grouped) <= 1 {
+		return FormatTranscript(entries)
+	}
+
+	// ChatID でソートしてから出力（安定した順序のため）
+	keys := make([]string, 0, len(grouped))
+	for k := range grouped {
+		keys = append(keys, k)
+	}
+	sortStrings(keys)
+
+	var sb strings.Builder
+	for i, key := range keys {
+		if i > 0 {
+			sb.WriteString("\n")
+		}
+		label := key
+		if labelFn != nil && key != "" {
+			label = labelFn(key)
+		}
+		if label == "" {
+			label = "(unknown)"
+		}
+		fmt.Fprintf(&sb, "## %s\n\n", label)
+		sb.WriteString(FormatTranscript(grouped[key]))
+	}
+	return sb.String()
+}
+
+// sortStrings は文字列スライスを昇順ソートする。
+func sortStrings(s []string) {
+	for i := 1; i < len(s); i++ {
+		for j := i; j > 0 && s[j] < s[j-1]; j-- {
+			s[j], s[j-1] = s[j-1], s[j]
+		}
+	}
+}
+
 // FormatTranscript は LogEntry をチャット形式の Markdown テキストに変換する。
 func FormatTranscript(entries []logging.LogEntry) string {
 	if len(entries) == 0 {

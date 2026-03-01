@@ -159,13 +159,68 @@ func (m *IdleMonitor) clearSession(dir, key string) {
 	slog.Info("session cleared successfully", "component", "idle-monitor", "session", key)
 }
 
-// SessionsDirsFromConfig は config から sessions ディレクトリパスを返す。
+// SessionsDirsFromConfig は config 内の全 Agent の sessions ディレクトリパスを返す。
+// デフォルトワークスペースに加え、各 Agent の個別ワークスペースも含む。
 func SessionsDirsFromConfig(cfg *config.Config) []string {
 	ws := cfg.WorkspacePath()
-	return []string{filepath.Join(ws, "sessions")}
+	dirs := []string{filepath.Join(ws, "sessions")}
+
+	home, _ := os.UserHomeDir()
+	for _, ac := range cfg.Agents.List {
+		dir := resolveSessionsDir(&ac, &cfg.Agents.Defaults, home)
+		if !containsStr(dirs, dir) {
+			dirs = append(dirs, dir)
+		}
+	}
+	return dirs
 }
 
-// resolveWorkspace は PicoClaw の resolveAgentWorkspace と同じロジックで
+// resolveSessionsDir は Agent の sessions ディレクトリパスを解決する。
+// PicoClaw の resolveAgentWorkspace と同じロジック。
+func resolveSessionsDir(ac *config.AgentConfig, defaults *config.AgentDefaults, home string) string {
+	var workspace string
+	switch {
+	case ac.Workspace != "":
+		workspace = expandHome(ac.Workspace, home)
+	case ac.Default || ac.ID == "" || normalizeID(ac.ID) == "main":
+		workspace = expandHome(defaults.Workspace, home)
+	default:
+		workspace = filepath.Join(home, ".picoclaw", "workspace-"+normalizeID(ac.ID))
+	}
+	return filepath.Join(workspace, "sessions")
+}
+
+func expandHome(path, home string) string {
+	if len(path) >= 2 && path[:2] == "~/" {
+		return filepath.Join(home, path[2:])
+	}
+	return path
+}
+
+func normalizeID(id string) string {
+	b := make([]byte, 0, len(id))
+	for i := range len(id) {
+		c := id[i]
+		if c >= 'A' && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		if c == ' ' {
+			c = '-'
+		}
+		b = append(b, c)
+	}
+	return string(b)
+}
+
+func containsStr(ss []string, s string) bool {
+	for _, v := range ss {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 // readSessionFile は JSON ファイルからセッション情報を読み取る。
 func readSessionFile(path string) (*sessionFile, error) {
 	data, err := os.ReadFile(path)
