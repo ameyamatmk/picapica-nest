@@ -103,7 +103,7 @@ func TestHandleConversationMessages_WithData(t *testing.T) {
 	if !strings.Contains(body, "こんにちは") {
 		t.Error("expected fragment to contain message content")
 	}
-	if !strings.Contains(body, "10:30") {
+	if !strings.Contains(body, "19:30") { // UTC 10:30 → JST 19:30
 		t.Error("expected fragment to contain message time")
 	}
 	if !strings.Contains(body, "ameyama") {
@@ -206,8 +206,8 @@ func TestLoadConversationMessages(t *testing.T) {
 	if messages[0].Sender != "ameyama" {
 		t.Errorf("expected sender 'ameyama', got %q", messages[0].Sender)
 	}
-	if messages[0].Time != "02:00" {
-		t.Errorf("expected time '02:00', got %q", messages[0].Time)
+	if messages[0].Time != "11:00" { // UTC 02:00 → JST 11:00
+		t.Errorf("expected time '11:00', got %q", messages[0].Time)
 	}
 	if messages[0].Content != "散歩しよう" {
 		t.Errorf("expected content '散歩しよう', got %q", messages[0].Content)
@@ -215,8 +215,8 @@ func TestLoadConversationMessages(t *testing.T) {
 
 	// 最後のメッセージ（最古）: inbound メッセージ
 	last := messages[len(messages)-1]
-	if last.Time != "01:15" {
-		t.Errorf("expected time '01:15', got %q", last.Time)
+	if last.Time != "10:15" { // UTC 01:15 → JST 10:15
+		t.Errorf("expected time '10:15', got %q", last.Time)
 	}
 	if last.Content != "おはよう、今日は何する？" {
 		t.Errorf("expected content 'おはよう、今日は何する？', got %q", last.Content)
@@ -281,8 +281,8 @@ func TestFormatMessageTime(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"2026-02-27T01:15:00Z", "01:15"},
-		{"2026-02-27T23:59:59Z", "23:59"},
+		{"2026-02-27T01:15:00Z", "10:15"},    // UTC 01:15 → JST 10:15
+		{"2026-02-27T23:59:59Z", "08:59"},    // UTC 23:59 → JST 翌日 08:59
 		{"invalid", "invalid"},
 	}
 

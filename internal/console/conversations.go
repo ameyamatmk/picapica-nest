@@ -14,6 +14,9 @@ import (
 	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 )
 
+// jst は日本標準時 (UTC+9)。
+var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
+
 // conversationChannel はチャンネルのメタデータ。
 type conversationChannel struct {
 	DirName string // ディレクトリ名 (例: "discord_test-channel")
@@ -275,12 +278,12 @@ func senderByDirection(dir string) string {
 	return "ameyama"
 }
 
-// formatMessageTime はタイムスタンプから時刻部分（HH:MM）を抽出する。
+// formatMessageTime はタイムスタンプから JST の時刻部分（HH:MM）を返す。
 func formatMessageTime(ts string) string {
 	t, err := time.Parse(time.RFC3339, ts)
 	if err != nil {
 		// パースできない場合はそのまま返す
 		return ts
 	}
-	return t.Format("15:04")
+	return t.In(jst).Format("15:04")
 }

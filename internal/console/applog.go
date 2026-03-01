@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 )
 
 // appLogEntry はアプリログの1行分のデータ。
@@ -253,14 +254,13 @@ func loadAppLogEntries(workspacePath, dateFile string) ([]appLogEntry, []string,
 	return entries, components, nil
 }
 
-// extractTime はタイムスタンプから HH:MM:SS 部分を抽出する。
+// extractTime はタイムスタンプから JST の HH:MM:SS 部分を返す。
 func extractTime(ts string) string {
-	// "T" の後ろから "+" または "Z" の前まで、最初の8文字 (HH:MM:SS)
-	idx := strings.IndexByte(ts, 'T')
-	if idx < 0 || idx+9 > len(ts) {
+	t, err := time.Parse(time.RFC3339, ts)
+	if err != nil {
 		return ts
 	}
-	return ts[idx+1 : idx+9]
+	return t.In(jst).Format("15:04:05")
 }
 
 // filterLogEntries はレベルとコンポーネントでエントリをフィルタリングする。
