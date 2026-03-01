@@ -275,6 +275,10 @@ func listAgentWorkspaces(workspacePath string, store *binding.Store, resolver *c
 			if me.IsDir() || !strings.HasSuffix(me.Name(), ".md") {
 				continue
 			}
+			// SOUL.md は全 Agent 共通のためスキップ（SOUL_EXTRA.md のみ表示）
+			if me.Name() == "SOUL.md" {
+				continue
+			}
 			files = append(files, workspaceFile{
 				Path:  "agents/" + agentID + "/" + me.Name(),
 				Name:  me.Name(),
@@ -285,10 +289,6 @@ func listAgentWorkspaces(workspacePath string, store *binding.Store, resolver *c
 		slices.SortFunc(files, func(a, b workspaceFile) int {
 			return strings.Compare(a.Name, b.Name)
 		})
-
-		if len(files) == 0 {
-			continue
-		}
 
 		agents = append(agents, agentWorkspace{
 			ID:       agentID,
