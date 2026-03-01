@@ -45,7 +45,7 @@ func TestConversationLogger_InboundMessage(t *testing.T) {
 	}
 
 	// Then: ログファイルが作成されている
-	date := time.Now().UTC().Format("2006-01-02")
+	date := time.Now().In(jst).Format("2006-01-02")
 	logFile := filepath.Join(tmpDir, "discord_chat-001", date+".jsonl")
 
 	// ファイル書き込みを待つ
@@ -108,7 +108,7 @@ func TestConversationLogger_OutboundMessage(t *testing.T) {
 	}
 
 	// Then: ログファイルが作成されている
-	date := time.Now().UTC().Format("2006-01-02")
+	date := time.Now().In(jst).Format("2006-01-02")
 	logFile := filepath.Join(tmpDir, "discord_chat-001", date+".jsonl")
 
 	var content []byte
@@ -215,7 +215,7 @@ func TestConversationLogger_MultipleMessages(t *testing.T) {
 	agentBus.ConsumeInbound(ctx)
 
 	// Then: ログファイルに3行記録されている
-	date := time.Now().UTC().Format("2006-01-02")
+	date := time.Now().In(jst).Format("2006-01-02")
 	logFile := filepath.Join(tmpDir, "discord_chat-001", date+".jsonl")
 
 	var content []byte

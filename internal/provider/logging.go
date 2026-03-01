@@ -10,6 +10,9 @@ import (
 	"github.com/sipeed/picoclaw/pkg/providers"
 )
 
+// jst は日本標準時 (UTC+9)。
+var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
+
 // UsageRecord は LLM 呼び出し1回分の usage 情報。
 // usage.jsonl に JSONL 形式で追記される。
 type UsageRecord struct {
@@ -45,7 +48,7 @@ func (p *LoggingProvider) Chat(ctx context.Context, messages []providers.Message
 	latency := time.Since(start)
 
 	record := UsageRecord{
-		Timestamp: start.UTC().Format(time.RFC3339),
+		Timestamp: start.In(jst).Format(time.RFC3339),
 		Model:     model,
 		LatencyMs: latency.Milliseconds(),
 	}
