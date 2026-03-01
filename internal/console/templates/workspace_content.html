@@ -16,6 +16,25 @@
             </a>
             {{end}}
             {{end}}
+
+            {{if .Agents}}
+            <div style="padding: 0.25rem 0.5rem; font-size: 0.8rem; color: var(--pico-muted-color); margin-top: 1rem; border-top: 1px solid var(--pico-muted-border-color); padding-top: 0.75rem;">
+                Agents
+            </div>
+            {{range .Agents}}
+            <div style="padding: 0.25rem 0.5rem; font-size: 0.85rem; font-weight: 600;">
+                {{.ID}}{{if .Channels}} <span style="font-weight: normal; font-size: 0.75rem; color: var(--pico-muted-color);">({{range $i, $ch := .Channels}}{{if $i}}, {{end}}{{$ch}}{{end}})</span>{{end}}
+            </div>
+            {{range .Files}}
+            <a href="#" hx-get="/workspace/content?file={{.Path}}"
+               hx-target="#workspace-area"
+               {{if eq .Path $.CurrentFile}}aria-current="page"{{end}}
+               style="padding-left: 1.5rem;">
+                {{.Name}}
+            </a>
+            {{end}}
+            {{end}}
+            {{end}}
         </nav>
     </aside>
     <article class="report-content">

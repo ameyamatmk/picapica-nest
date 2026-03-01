@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/ameyamatmk/picapica-nest/internal/binding"
+	"github.com/ameyamatmk/picapica-nest/internal/channellabel"
 )
 
 // workspaceFile はワークスペース内のファイルまたはディレクトリのメタデータ。
@@ -19,10 +22,18 @@ type workspaceFile struct {
 	Depth int    // ネスト深さ（0=ルート）
 }
 
+// agentWorkspace は Agent ワークスペースの表示データ。
+type agentWorkspace struct {
+	ID       string          // Agent ID (例: "work")
+	Channels []string        // バインド先チャンネル名 (例: ["一般"])
+	Files    []workspaceFile // Agent ワークスペース内の .md ファイル
+}
+
 // workspaceData はワークスペース画面のテンプレートデータ。
 type workspaceData struct {
 	pageData
 	Files       []workspaceFile
+	Agents      []agentWorkspace // 動的 Agent のワークスペース
 	CurrentFile string
 	Content     template.HTML // Markdown → HTML 変換済み
 }
@@ -34,6 +45,7 @@ var excludeDirs = map[string]bool{
 	"sessions": true,
 	"state":    true,
 	"logs":     true,
+	"agents":   true,
 }
 
 // handleWorkspace はワークスペースファイル閲覧画面をフルページで返す。
@@ -71,6 +83,9 @@ func (s *Server) buildWorkspaceData(file string) workspaceData {
 		slog.Error("failed to list workspace files", "component", "console", "error", err)
 	}
 	data.Files = files
+
+	// Agent ワークスペースを列挙
+	data.Agents = listAgentWorkspaces(s.workspacePath, s.bindingStore, s.resolver)
 
 	// ファイル未指定の場合、最初の非ディレクトリファイルを自動選択
 	if file == "" {
@@ -224,6 +239,88 @@ func listOrderedFiles(dirPath, dirName string, order []string) []workspaceFile {
 		})
 	}
 	return files
+}
+
+// listAgentWorkspaces は workspace/agents/ 配下の Agent ワークスペースをスキャンし、
+// 各 Agent の .md ファイル一覧とバインドされているチャンネル名を返す。
+func listAgentWorkspaces(workspacePath string, store *binding.Store, resolver *channellabel.Resolver) []agentWorkspace {
+	agentsDir := filepath.Join(workspacePath, "agents")
+	entries, err := os.ReadDir(agentsDir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			slog.Error("failed to read agents directory", "component", "console", "error", err)
+		}
+		return nil
+	}
+
+	channelMap := buildAgentChannelMap(store, resolver)
+
+	var agents []agentWorkspace
+	for _, e := range entries {
+		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		agentID := e.Name()
+
+		// Agent ディレクトリ内の .md ファイルを列挙
+		agentPath := filepath.Join(agentsDir, agentID)
+		mdEntries, err := os.ReadDir(agentPath)
+		if err != nil {
+			slog.Error("failed to read agent directory", "component", "console", "agent_id", agentID, "error", err)
+			continue
+		}
+
+		var files []workspaceFile
+		for _, me := range mdEntries {
+			if me.IsDir() || !strings.HasSuffix(me.Name(), ".md") {
+				continue
+			}
+			files = append(files, workspaceFile{
+				Path:  "agents/" + agentID + "/" + me.Name(),
+				Name:  me.Name(),
+				IsDir: false,
+				Depth: 2,
+			})
+		}
+		slices.SortFunc(files, func(a, b workspaceFile) int {
+			return strings.Compare(a.Name, b.Name)
+		})
+
+		if len(files) == 0 {
+			continue
+		}
+
+		agents = append(agents, agentWorkspace{
+			ID:       agentID,
+			Channels: channelMap[agentID],
+			Files:    files,
+		})
+	}
+
+	slices.SortFunc(agents, func(a, b agentWorkspace) int {
+		return strings.Compare(a.ID, b.ID)
+	})
+	return agents
+}
+
+// buildAgentChannelMap は binding.Store からエージェントID → チャンネル名のマップを構築する。
+func buildAgentChannelMap(store *binding.Store, resolver *channellabel.Resolver) map[string][]string {
+	result := make(map[string][]string)
+	if store == nil {
+		return result
+	}
+
+	for _, entry := range store.List() {
+		label := entry.ChannelID
+		if resolver != nil {
+			dirName := "discord_" + entry.ChannelID
+			if resolved, err := resolver.Resolve(dirName); err == nil {
+				label = resolved
+			}
+		}
+		result[entry.AgentID] = append(result[entry.AgentID], label)
+	}
+	return result
 }
 
 // readWorkspaceFile はワークスペース内のファイルを読み込み、Markdown → HTML 変換して返す。
