@@ -11,8 +11,19 @@ import (
 // Option は Claude Code CLI 実行時のオプション。
 type Option func(*runConfig)
 
+// DefaultModel は Claude Code CLI のデフォルトモデル。
+const DefaultModel = "sonnet"
+
 type runConfig struct {
+	model        string
 	allowedTools []string
+}
+
+// WithModel は Claude Code CLI に --model を指定する。
+func WithModel(model string) Option {
+	return func(c *runConfig) {
+		c.model = model
+	}
 }
 
 // WithAllowedTools は Claude Code CLI に --allowedTools を指定する。
@@ -31,7 +42,12 @@ func Run(ctx context.Context, prompt string, stdin string, opts ...Option) (stri
 		opt(cfg)
 	}
 
-	args := []string{"-p", prompt}
+	model := cfg.model
+	if model == "" {
+		model = DefaultModel
+	}
+
+	args := []string{"-p", prompt, "--model", model}
 	if len(cfg.allowedTools) > 0 {
 		args = append(args, "--allowedTools", strings.Join(cfg.allowedTools, ","))
 	}

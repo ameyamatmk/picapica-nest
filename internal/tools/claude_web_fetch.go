@@ -50,7 +50,7 @@ func (t *ClaudeWebFetchTool) Execute(ctx context.Context, args map[string]any) *
 
 	prompt := buildFetchPrompt(url, question)
 	result, err := claudecode.Run(ctx, prompt, "",
-		claudecode.WithAllowedTools("WebFetch"),
+		claudecode.WithAllowedTools("WebFetch", "WebSearch"),
 	)
 	if err != nil {
 		return tools.ErrorResult("ページの取得に失敗しました: " + err.Error())
