@@ -91,7 +91,8 @@ func cmdServe() error {
 	// 5.5. Claude Code CLI 委譲ツール登録
 	agentLoop.RegisterTool(itools.NewClaudeAnalyzeImageTool(os.TempDir()))
 	agentLoop.RegisterTool(itools.NewClaudeWebSearchTool())
-	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "claude_web_search"})
+	agentLoop.RegisterTool(itools.NewClaudeWebFetchTool())
+	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "claude_web_search", "claude_web_fetch"})
 
 	// 6. Channel Manager 作成（channelBus を使用）
 	channelManager, err := channels.NewManager(cfg, channelBus, nil)

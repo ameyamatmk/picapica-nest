@@ -62,9 +62,11 @@ func (t *ClaudeAnalyzeImageTool) Execute(ctx context.Context, args map[string]an
 	}
 	defer os.Remove(tmpFile)
 
-	// Claude Code CLI で分析
+	// Claude Code CLI で分析（Read のみ許可）
 	prompt := buildVisionPrompt(tmpFile, question)
-	result, err := claudecode.Run(ctx, prompt, "")
+	result, err := claudecode.Run(ctx, prompt, "",
+		claudecode.WithAllowedTools("Read"),
+	)
 	if err != nil {
 		return tools.ErrorResult("画像の分析に失敗しました: " + err.Error())
 	}

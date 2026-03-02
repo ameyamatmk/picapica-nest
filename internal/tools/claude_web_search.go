@@ -43,7 +43,9 @@ func (t *ClaudeWebSearchTool) Execute(ctx context.Context, args map[string]any) 
 	}
 
 	prompt := fmt.Sprintf("次のクエリについて Web 検索し、結果を日本語で簡潔にまとめてください: %s", query)
-	result, err := claudecode.Run(ctx, prompt, "")
+	result, err := claudecode.Run(ctx, prompt, "",
+		claudecode.WithAllowedTools("WebSearch", "WebFetch"),
+	)
 	if err != nil {
 		return tools.ErrorResult("Web 検索に失敗しました: " + err.Error())
 	}
