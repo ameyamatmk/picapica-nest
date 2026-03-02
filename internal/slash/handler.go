@@ -16,6 +16,7 @@ import (
 	"github.com/sipeed/picoclaw/pkg/config"
 	"github.com/sipeed/picoclaw/pkg/providers"
 	"github.com/sipeed/picoclaw/pkg/routing"
+	"github.com/sipeed/picoclaw/pkg/tools"
 )
 
 // Handler は Discord スラッシュコマンドを処理する。
@@ -25,6 +26,7 @@ type Handler struct {
 	agentLoop    *agent.AgentLoop
 	bindingStore *binding.Store
 	provider     providers.LLMProvider
+	customTools  []tools.Tool // 動的エージェント作成時に追加登録するツール
 	mu           sync.Mutex
 	registeredIn map[string]bool // guildID → 登録済みフラグ
 }
@@ -36,6 +38,7 @@ func NewHandler(
 	agentLoop *agent.AgentLoop,
 	bindingStore *binding.Store,
 	provider providers.LLMProvider,
+	customTools []tools.Tool,
 ) *Handler {
 	return &Handler{
 		session:      session,
@@ -43,6 +46,7 @@ func NewHandler(
 		agentLoop:    agentLoop,
 		bindingStore: bindingStore,
 		provider:     provider,
+		customTools:  customTools,
 		registeredIn: make(map[string]bool),
 	}
 }
@@ -432,6 +436,13 @@ func (h *Handler) createAgent(agentID string) error {
 	}
 
 	h.agentLoop.RegisterToolsForAgent(agentID)
+
+	// カスタムツールを追加登録（組み込みツールを上書き）
+	if ag, ok := h.agentLoop.Registry().GetAgent(agentID); ok {
+		for _, t := range h.customTools {
+			ag.Tools.Register(t)
+		}
+	}
 
 	slog.Info("slash: dynamic agent created",
 		"agent_id", agentID,

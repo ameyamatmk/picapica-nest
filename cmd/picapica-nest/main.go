@@ -29,6 +29,7 @@ import (
 	"github.com/sipeed/picoclaw/pkg/config"
 	"github.com/sipeed/picoclaw/pkg/health"
 	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/sipeed/picoclaw/pkg/tools"
 )
 
 // configPath は picapica-nest 専用の設定ファイルパスを返す。
@@ -88,12 +89,6 @@ func cmdServe() error {
 	// 5. Agent Loop 作成（agentBus を使用）
 	agentLoop := agent.NewAgentLoop(cfg, agentBus, llmProvider)
 
-	// 5.5. Claude Code CLI 委譲ツール登録
-	agentLoop.RegisterTool(itools.NewClaudeAnalyzeImageTool(os.TempDir()))
-	agentLoop.RegisterTool(itools.NewClaudeWebSearchTool())
-	agentLoop.RegisterTool(itools.NewClaudeWebFetchTool())
-	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "claude_web_search", "web_fetch"})
-
 	// 6. Channel Manager 作成（channelBus を使用）
 	channelManager, err := channels.NewManager(cfg, channelBus, nil)
 	if err != nil {
@@ -127,13 +122,21 @@ func cmdServe() error {
 	}
 	restoreBindings(bindingStore, cfg, agentLoop, llmProvider)
 
+	// 7.6. Claude Code CLI 委譲ツール登録
+	// restoreBindings の後に登録することで、組み込みツール（web_fetch 等）を上書きする
+	customTools := itools.NewClaudeTools(os.TempDir())
+	for _, t := range customTools {
+		agentLoop.RegisterTool(t)
+	}
+	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "claude_web_search", "web_fetch"})
+
 	// 8. 全チャンネル起動
 	if err := channelManager.StartAll(ctx); err != nil {
 		slog.Error("failed to start channels", "error", err)
 	}
 
 	// 8.5. Discord スラッシュコマンド設定
-	setupSlashCommands(channelManager, cfg, agentLoop, bindingStore, llmProvider)
+	setupSlashCommands(channelManager, cfg, agentLoop, bindingStore, llmProvider, customTools)
 
 	// Health server をバックグラウンドで起動
 	go func() {
@@ -259,6 +262,7 @@ func setupSlashCommands(
 	agentLoop *agent.AgentLoop,
 	bindingStore *binding.Store,
 	llmProvider providers.LLMProvider,
+	customTools []tools.Tool,
 ) {
 	ch, ok := channelManager.GetChannel("discord")
 	if !ok {
@@ -272,7 +276,7 @@ func setupSlashCommands(
 	}
 
 	sess := sp.Session()
-	handler := slash.NewHandler(sess, cfg, agentLoop, bindingStore, llmProvider)
+	handler := slash.NewHandler(sess, cfg, agentLoop, bindingStore, llmProvider, customTools)
 	sess.AddHandler(handler.HandleInteraction)
 
 	slog.Info("slash commands handler registered", "component", "slash")
