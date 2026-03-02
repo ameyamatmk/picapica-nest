@@ -295,12 +295,14 @@ func main() {
 		case "hindsight":
 			err = cmdHindsight(os.Args[2:])
 		default:
+			slog.Error("unknown command", "command", os.Args[1])
 			fmt.Fprintf(os.Stderr, "Unknown command: %s\nUsage: picapica-nest [serve|hindsight]\n", os.Args[1])
 			os.Exit(1)
 		}
 	}
 
 	if err != nil {
+		slog.Error("fatal error", "error", err)
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
