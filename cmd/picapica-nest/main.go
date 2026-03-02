@@ -27,6 +27,7 @@ import (
 	"github.com/sipeed/picoclaw/pkg/channels"
 	_ "github.com/sipeed/picoclaw/pkg/channels/discord"
 	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/sipeed/picoclaw/pkg/cron"
 	"github.com/sipeed/picoclaw/pkg/health"
 	"github.com/sipeed/picoclaw/pkg/providers"
 	"github.com/sipeed/picoclaw/pkg/tools"
@@ -130,6 +131,34 @@ func cmdServe() error {
 	}
 	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "web_search", "web_fetch"})
 
+	// 7.7. CronService + CronTool 初期化
+	cronStorePath := filepath.Join(cfg.WorkspacePath(), "cron", "jobs.json")
+	cronService := cron.NewCronService(cronStorePath, nil)
+
+	execTimeout := time.Duration(cfg.Tools.Cron.ExecTimeoutMinutes) * time.Minute
+	cronTool, err := tools.NewCronTool(
+		cronService, agentLoop, agentBus,
+		cfg.WorkspacePath(),
+		cfg.Agents.Defaults.RestrictToWorkspace,
+		execTimeout,
+		cfg,
+	)
+	if err != nil {
+		return fmt.Errorf("cron tool creation error: %w", err)
+	}
+	agentLoop.RegisterTool(cronTool)
+
+	cronService.SetOnJob(func(job *cron.CronJob) (string, error) {
+		result := cronTool.ExecuteJob(context.Background(), job)
+		return result, nil
+	})
+
+	if err := cronService.Start(); err != nil {
+		slog.Error("failed to start cron service", "error", err)
+	} else {
+		slog.Info("cron service started", "store", cronStorePath)
+	}
+
 	// 8. 全チャンネル起動
 	if err := channelManager.StartAll(ctx); err != nil {
 		slog.Error("failed to start channels", "error", err)
@@ -207,6 +236,7 @@ func cmdServe() error {
 
 	slog.Info("shutting down")
 	cancel()
+	cronService.Stop()
 	idleMonitor.Stop()
 	consoleServer.Stop(context.Background())
 	healthServer.Stop(context.Background())
