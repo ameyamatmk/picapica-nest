@@ -10,11 +10,13 @@ import (
 
 // ClaudeWebSearchTool は Claude Code CLI を使って Web 検索を行うツール。
 // PicoClaw 組み込みの web_search（Brave/Tavily 等）とは別名で共存する。
-type ClaudeWebSearchTool struct{}
+type ClaudeWebSearchTool struct {
+	soulPrompt string
+}
 
 // NewClaudeWebSearchTool は ClaudeWebSearchTool を作成する。
-func NewClaudeWebSearchTool() *ClaudeWebSearchTool {
-	return &ClaudeWebSearchTool{}
+func NewClaudeWebSearchTool(soulPrompt string) *ClaudeWebSearchTool {
+	return &ClaudeWebSearchTool{soulPrompt: soulPrompt}
 }
 
 func (t *ClaudeWebSearchTool) Name() string { return "web_search" }
@@ -43,9 +45,13 @@ func (t *ClaudeWebSearchTool) Execute(ctx context.Context, args map[string]any) 
 	}
 
 	prompt := fmt.Sprintf("次のクエリについて Web 検索し、結果を日本語で簡潔にまとめてください: %s", query)
-	result, err := claudecode.Run(ctx, prompt, "",
+	opts := []claudecode.Option{
 		claudecode.WithAllowedTools("WebSearch", "WebFetch"),
-	)
+	}
+	if t.soulPrompt != "" {
+		opts = append(opts, claudecode.WithAppendSystemPrompt(t.soulPrompt))
+	}
+	result, err := claudecode.Run(ctx, prompt, "", opts...)
 	if err != nil {
 		return tools.ErrorResult("Web 検索に失敗しました: " + err.Error())
 	}

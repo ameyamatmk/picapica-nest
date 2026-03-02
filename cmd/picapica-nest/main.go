@@ -124,7 +124,7 @@ func cmdServe() error {
 
 	// 7.6. Claude Code CLI 委譲ツール登録
 	// restoreBindings の後に登録することで、組み込みツール（web_fetch 等）を上書きする
-	customTools := itools.NewClaudeTools(os.TempDir())
+	customTools := itools.NewClaudeTools(os.TempDir(), cfg.WorkspacePath())
 	for _, t := range customTools {
 		agentLoop.RegisterTool(t)
 	}

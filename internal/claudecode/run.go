@@ -15,8 +15,9 @@ type Option func(*runConfig)
 const DefaultModel = "sonnet"
 
 type runConfig struct {
-	model        string
-	allowedTools []string
+	model              string
+	allowedTools       []string
+	appendSystemPrompt string
 }
 
 // WithModel は Claude Code CLI に --model を指定する。
@@ -31,6 +32,14 @@ func WithModel(model string) Option {
 func WithAllowedTools(tools ...string) Option {
 	return func(c *runConfig) {
 		c.allowedTools = append(c.allowedTools, tools...)
+	}
+}
+
+// WithAppendSystemPrompt は Claude Code CLI に --append-system-prompt を指定する。
+// システムプロンプトの末尾に追加テキストを付与する。
+func WithAppendSystemPrompt(text string) Option {
+	return func(c *runConfig) {
+		c.appendSystemPrompt = text
 	}
 }
 
@@ -50,6 +59,9 @@ func Run(ctx context.Context, prompt string, stdin string, opts ...Option) (stri
 	args := []string{"-p", prompt, "--model", model}
 	if len(cfg.allowedTools) > 0 {
 		args = append(args, "--allowedTools", strings.Join(cfg.allowedTools, ","))
+	}
+	if cfg.appendSystemPrompt != "" {
+		args = append(args, "--append-system-prompt", cfg.appendSystemPrompt)
 	}
 
 	cmd := exec.CommandContext(ctx, "claude", args...)

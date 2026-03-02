@@ -15,13 +15,14 @@ import (
 
 // ClaudeAnalyzeImageTool は画像の URL を受け取り、Claude Code CLI で分析するツール。
 type ClaudeAnalyzeImageTool struct {
-	tempDir string
+	tempDir    string
+	soulPrompt string
 }
 
 // NewClaudeAnalyzeImageTool は ClaudeAnalyzeImageTool を作成する。
 // tempDir は画像ダウンロード用の一時ディレクトリ。
-func NewClaudeAnalyzeImageTool(tempDir string) *ClaudeAnalyzeImageTool {
-	return &ClaudeAnalyzeImageTool{tempDir: tempDir}
+func NewClaudeAnalyzeImageTool(tempDir string, soulPrompt string) *ClaudeAnalyzeImageTool {
+	return &ClaudeAnalyzeImageTool{tempDir: tempDir, soulPrompt: soulPrompt}
 }
 
 func (t *ClaudeAnalyzeImageTool) Name() string { return "claude_analyze_image" }
@@ -64,9 +65,13 @@ func (t *ClaudeAnalyzeImageTool) Execute(ctx context.Context, args map[string]an
 
 	// Claude Code CLI で分析（Read のみ許可）
 	prompt := buildVisionPrompt(tmpFile, question)
-	result, err := claudecode.Run(ctx, prompt, "",
+	opts := []claudecode.Option{
 		claudecode.WithAllowedTools("Read"),
-	)
+	}
+	if t.soulPrompt != "" {
+		opts = append(opts, claudecode.WithAppendSystemPrompt(t.soulPrompt))
+	}
+	result, err := claudecode.Run(ctx, prompt, "", opts...)
 	if err != nil {
 		return tools.ErrorResult("画像の分析に失敗しました: " + err.Error())
 	}
