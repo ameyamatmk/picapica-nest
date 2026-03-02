@@ -80,6 +80,7 @@ func downloadImage(ctx context.Context, imageURL, tempDir string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("request creation failed: %w", err)
 	}
+	req.Header.Set("User-Agent", "picapica-nest/1.0")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
