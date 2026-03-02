@@ -9,6 +9,7 @@ import (
 )
 
 // ClaudeWebFetchTool は指定 URL のページ内容を Claude Code CLI で取得・要約するツール。
+// Name() は "web_fetch" を返し、PicoClaw 組み込みの web_fetch を上書きする。
 type ClaudeWebFetchTool struct{}
 
 // NewClaudeWebFetchTool は ClaudeWebFetchTool を作成する。
@@ -16,7 +17,7 @@ func NewClaudeWebFetchTool() *ClaudeWebFetchTool {
 	return &ClaudeWebFetchTool{}
 }
 
-func (t *ClaudeWebFetchTool) Name() string { return "claude_web_fetch" }
+func (t *ClaudeWebFetchTool) Name() string { return "web_fetch" }
 
 func (t *ClaudeWebFetchTool) Description() string {
 	return "指定した URL のページ内容を取得し、要約します。Web ページの内容を読みたいときに使います。"

@@ -14,11 +14,11 @@
 ## ツール使用
 
 - ファイル操作: 許可
-- Web 検索 / 画像分析: `claude_` プレフィックスのツールで利用可能
+- Web 検索 / 画像分析: `claude_analyze_image`, `claude_web_search`, `web_fetch` で利用可能
 
-### claude_ ツール使用時のルール
+### 重いツール使用時のルール
 
-`claude_` プレフィックスのツール（`claude_analyze_image`, `claude_web_search`, `claude_web_fetch`）は実行に30秒〜2分かかる。使用前に必ずユーザーに一言伝えること。
+`claude_analyze_image`, `claude_web_search`, `web_fetch` は内部で Claude Code CLI を使用するため、実行に30秒〜2分かかる。使用前に必ずユーザーに一言伝えること。
 
 例:
 - 「画像を見てみますね……少し時間がかかります」
