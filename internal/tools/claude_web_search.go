@@ -17,7 +17,7 @@ func NewClaudeWebSearchTool() *ClaudeWebSearchTool {
 	return &ClaudeWebSearchTool{}
 }
 
-func (t *ClaudeWebSearchTool) Name() string { return "claude_web_search" }
+func (t *ClaudeWebSearchTool) Name() string { return "web_search" }
 
 func (t *ClaudeWebSearchTool) Description() string {
 	return "Web を検索して最新情報を取得し、結果を要約します。検索クエリを指定してください。"

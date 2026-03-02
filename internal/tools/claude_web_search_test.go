@@ -10,8 +10,8 @@ func TestClaudeWebSearchTool_Interface(t *testing.T) {
 
 	// Given: ツール名と説明が設定されている
 	// Then: 正しい名前と説明を返す
-	if got := tool.Name(); got != "claude_web_search" {
-		t.Errorf("Name() = %q, want %q", got, "claude_web_search")
+	if got := tool.Name(); got != "web_search" {
+		t.Errorf("Name() = %q, want %q", got, "web_search")
 	}
 
 	if got := tool.Description(); got == "" {

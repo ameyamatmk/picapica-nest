@@ -128,7 +128,7 @@ func cmdServe() error {
 	for _, t := range customTools {
 		agentLoop.RegisterTool(t)
 	}
-	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "claude_web_search", "web_fetch"})
+	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "web_search", "web_fetch"})
 
 	// 8. 全チャンネル起動
 	if err := channelManager.StartAll(ctx); err != nil {
