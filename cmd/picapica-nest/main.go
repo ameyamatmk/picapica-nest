@@ -20,6 +20,7 @@ import (
 	"github.com/ameyamatmk/picapica-nest/internal/provider"
 	isession "github.com/ameyamatmk/picapica-nest/internal/session"
 	"github.com/ameyamatmk/picapica-nest/internal/slash"
+	itools "github.com/ameyamatmk/picapica-nest/internal/tools"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sipeed/picoclaw/pkg/agent"
 	"github.com/sipeed/picoclaw/pkg/bus"
@@ -86,6 +87,11 @@ func cmdServe() error {
 
 	// 5. Agent Loop 作成（agentBus を使用）
 	agentLoop := agent.NewAgentLoop(cfg, agentBus, llmProvider)
+
+	// 5.5. Claude Code CLI 委譲ツール登録
+	agentLoop.RegisterTool(itools.NewClaudeAnalyzeImageTool(os.TempDir()))
+	agentLoop.RegisterTool(itools.NewClaudeWebSearchTool())
+	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "claude_web_search"})
 
 	// 6. Channel Manager 作成（channelBus を使用）
 	channelManager, err := channels.NewManager(cfg, channelBus, nil)
