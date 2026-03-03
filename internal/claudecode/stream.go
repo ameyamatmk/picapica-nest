@@ -57,7 +57,7 @@ func runStream(ctx context.Context, cfg *runConfig) (string, error) {
 		model = DefaultModel
 	}
 
-	args := []string{"-p", cfg.prompt, "--model", model, "--output-format", "stream-json"}
+	args := []string{"-p", cfg.prompt, "--model", model, "--output-format", "stream-json", "--verbose"}
 	if len(cfg.allowedTools) > 0 {
 		args = append(args, "--allowedTools", strings.Join(cfg.allowedTools, ","))
 	}
@@ -85,11 +85,14 @@ func runStream(ctx context.Context, cfg *runConfig) (string, error) {
 
 	var resultText string
 	scanner := bufio.NewScanner(stdout)
+	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024) // 1MB バッファ
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(line) == 0 {
 			continue
 		}
+
+		slog.Debug("stream-json raw line", "line", string(line))
 
 		result, ok := parseLine(line)
 		if !ok {
