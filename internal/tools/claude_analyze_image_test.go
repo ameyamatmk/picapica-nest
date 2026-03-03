@@ -10,7 +10,7 @@ import (
 )
 
 func TestClaudeAnalyzeImageTool_Interface(t *testing.T) {
-	tool := NewClaudeAnalyzeImageTool(os.TempDir(), "")
+	tool := NewClaudeAnalyzeImageTool(os.TempDir(), "", nil)
 
 	// Given: ツール名と説明が設定されている
 	// Then: 正しい名前と説明を返す
@@ -24,7 +24,7 @@ func TestClaudeAnalyzeImageTool_Interface(t *testing.T) {
 }
 
 func TestClaudeAnalyzeImageTool_Parameters(t *testing.T) {
-	tool := NewClaudeAnalyzeImageTool(os.TempDir(), "")
+	tool := NewClaudeAnalyzeImageTool(os.TempDir(), "", nil)
 
 	// Given: パラメータ定義を取得
 	params := tool.Parameters()
@@ -52,7 +52,7 @@ func TestClaudeAnalyzeImageTool_Parameters(t *testing.T) {
 }
 
 func TestClaudeAnalyzeImageTool_MissingImageURL(t *testing.T) {
-	tool := NewClaudeAnalyzeImageTool(os.TempDir(), "")
+	tool := NewClaudeAnalyzeImageTool(os.TempDir(), "", nil)
 
 	// Given: image_url が空
 	args := map[string]any{}

@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/ameyamatmk/picapica-nest/internal/claudecode"
+	"github.com/sipeed/picoclaw/pkg/bus"
 	"github.com/sipeed/picoclaw/pkg/tools"
 )
 
@@ -17,12 +19,21 @@ import (
 type ClaudeAnalyzeImageTool struct {
 	tempDir    string
 	soulPrompt string
+	bus        *bus.MessageBus
+	channel    string
+	chatID     string
 }
 
 // NewClaudeAnalyzeImageTool は ClaudeAnalyzeImageTool を作成する。
 // tempDir は画像ダウンロード用の一時ディレクトリ。
-func NewClaudeAnalyzeImageTool(tempDir string, soulPrompt string) *ClaudeAnalyzeImageTool {
-	return &ClaudeAnalyzeImageTool{tempDir: tempDir, soulPrompt: soulPrompt}
+func NewClaudeAnalyzeImageTool(tempDir string, soulPrompt string, mb *bus.MessageBus) *ClaudeAnalyzeImageTool {
+	return &ClaudeAnalyzeImageTool{tempDir: tempDir, soulPrompt: soulPrompt, bus: mb}
+}
+
+// SetContext は ContextualTool インターフェースの実装。
+func (t *ClaudeAnalyzeImageTool) SetContext(channel, chatID string) {
+	t.channel = channel
+	t.chatID = chatID
 }
 
 func (t *ClaudeAnalyzeImageTool) Name() string { return "claude_analyze_image" }
@@ -56,6 +67,8 @@ func (t *ClaudeAnalyzeImageTool) Execute(ctx context.Context, args map[string]an
 
 	question, _ := args["question"].(string)
 
+	slog.Info("executing claude code delegation", "tool", t.Name(), "image_url", imageURL)
+
 	// 画像ダウンロード → 一時ファイル
 	tmpFile, err := downloadImage(ctx, imageURL, t.tempDir)
 	if err != nil {
@@ -70,6 +83,9 @@ func (t *ClaudeAnalyzeImageTool) Execute(ctx context.Context, args map[string]an
 	}
 	if t.soulPrompt != "" {
 		opts = append(opts, claudecode.WithAppendSystemPrompt(t.soulPrompt))
+	}
+	if progressFn := newProgressFunc(t.bus, t.channel, t.chatID); progressFn != nil {
+		opts = append(opts, claudecode.WithProgress(progressFn))
 	}
 	result, err := claudecode.Run(ctx, prompt, "", opts...)
 	if err != nil {

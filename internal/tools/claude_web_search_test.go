@@ -6,7 +6,7 @@ import (
 )
 
 func TestClaudeWebSearchTool_Interface(t *testing.T) {
-	tool := NewClaudeWebSearchTool("")
+	tool := NewClaudeWebSearchTool("", nil)
 
 	// Given: ツール名と説明が設定されている
 	// Then: 正しい名前と説明を返す
@@ -20,7 +20,7 @@ func TestClaudeWebSearchTool_Interface(t *testing.T) {
 }
 
 func TestClaudeWebSearchTool_Parameters(t *testing.T) {
-	tool := NewClaudeWebSearchTool("")
+	tool := NewClaudeWebSearchTool("", nil)
 
 	// Given: パラメータ定義を取得
 	params := tool.Parameters()
@@ -45,7 +45,7 @@ func TestClaudeWebSearchTool_Parameters(t *testing.T) {
 }
 
 func TestClaudeWebSearchTool_MissingQuery(t *testing.T) {
-	tool := NewClaudeWebSearchTool("")
+	tool := NewClaudeWebSearchTool("", nil)
 
 	// Given: query が空
 	args := map[string]any{}

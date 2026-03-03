@@ -18,6 +18,9 @@ type runConfig struct {
 	model              string
 	allowedTools       []string
 	appendSystemPrompt string
+	progress           ProgressFunc
+	prompt             string
+	stdin              string
 }
 
 // WithModel は Claude Code CLI に --model を指定する。
@@ -45,18 +48,31 @@ func WithAppendSystemPrompt(text string) Option {
 
 // Run は claude -p を実行し、stdout を返す。
 // prompt は LLM への指示、stdin は標準入力に渡すテキスト。
+// WithProgress が指定されている場合は stream-json モードで実行し、
+// CLI 内部のツール使用をリアルタイムで通知する。
 func Run(ctx context.Context, prompt string, stdin string, opts ...Option) (string, error) {
-	cfg := &runConfig{}
+	cfg := &runConfig{
+		prompt: prompt,
+		stdin:  stdin,
+	}
 	for _, opt := range opts {
 		opt(cfg)
 	}
 
+	if cfg.progress != nil {
+		return runStream(ctx, cfg)
+	}
+	return runSync(ctx, cfg)
+}
+
+// runSync は従来の同期実行（cmd.Output）で CLI を実行する。
+func runSync(ctx context.Context, cfg *runConfig) (string, error) {
 	model := cfg.model
 	if model == "" {
 		model = DefaultModel
 	}
 
-	args := []string{"-p", prompt, "--model", model}
+	args := []string{"-p", cfg.prompt, "--model", model}
 	if len(cfg.allowedTools) > 0 {
 		args = append(args, "--allowedTools", strings.Join(cfg.allowedTools, ","))
 	}
@@ -65,8 +81,8 @@ func Run(ctx context.Context, prompt string, stdin string, opts ...Option) (stri
 	}
 
 	cmd := exec.CommandContext(ctx, "claude", args...)
-	if stdin != "" {
-		cmd.Stdin = strings.NewReader(stdin)
+	if cfg.stdin != "" {
+		cmd.Stdin = strings.NewReader(cfg.stdin)
 	}
 
 	output, err := cmd.Output()

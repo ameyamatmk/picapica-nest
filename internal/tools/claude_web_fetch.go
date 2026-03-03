@@ -3,8 +3,10 @@ package tools
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/ameyamatmk/picapica-nest/internal/claudecode"
+	"github.com/sipeed/picoclaw/pkg/bus"
 	"github.com/sipeed/picoclaw/pkg/tools"
 )
 
@@ -12,11 +14,20 @@ import (
 // Name() は "web_fetch" を返し、PicoClaw 組み込みの web_fetch を上書きする。
 type ClaudeWebFetchTool struct {
 	soulPrompt string
+	bus        *bus.MessageBus
+	channel    string
+	chatID     string
 }
 
 // NewClaudeWebFetchTool は ClaudeWebFetchTool を作成する。
-func NewClaudeWebFetchTool(soulPrompt string) *ClaudeWebFetchTool {
-	return &ClaudeWebFetchTool{soulPrompt: soulPrompt}
+func NewClaudeWebFetchTool(soulPrompt string, mb *bus.MessageBus) *ClaudeWebFetchTool {
+	return &ClaudeWebFetchTool{soulPrompt: soulPrompt, bus: mb}
+}
+
+// SetContext は ContextualTool インターフェースの実装。
+func (t *ClaudeWebFetchTool) SetContext(channel, chatID string) {
+	t.channel = channel
+	t.chatID = chatID
 }
 
 func (t *ClaudeWebFetchTool) Name() string { return "web_fetch" }
@@ -50,12 +61,17 @@ func (t *ClaudeWebFetchTool) Execute(ctx context.Context, args map[string]any) *
 
 	question, _ := args["question"].(string)
 
+	slog.Info("executing claude code delegation", "tool", t.Name(), "url", url)
+
 	prompt := buildFetchPrompt(url, question)
 	opts := []claudecode.Option{
 		claudecode.WithAllowedTools("WebFetch", "WebSearch"),
 	}
 	if t.soulPrompt != "" {
 		opts = append(opts, claudecode.WithAppendSystemPrompt(t.soulPrompt))
+	}
+	if progressFn := newProgressFunc(t.bus, t.channel, t.chatID); progressFn != nil {
+		opts = append(opts, claudecode.WithProgress(progressFn))
 	}
 	result, err := claudecode.Run(ctx, prompt, "", opts...)
 	if err != nil {
