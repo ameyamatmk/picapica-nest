@@ -27,6 +27,7 @@ import (
 	"github.com/sipeed/picoclaw/pkg/channels"
 	_ "github.com/sipeed/picoclaw/pkg/channels/discord"
 	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/sipeed/picoclaw/pkg/cron"
 	"github.com/sipeed/picoclaw/pkg/health"
 	"github.com/sipeed/picoclaw/pkg/providers"
 	"github.com/sipeed/picoclaw/pkg/tools"
@@ -124,11 +125,39 @@ func cmdServe() error {
 
 	// 7.6. Claude Code CLI 委譲ツール登録
 	// restoreBindings の後に登録することで、組み込みツール（web_fetch 等）を上書きする
-	customTools := itools.NewClaudeTools(os.TempDir())
+	customTools := itools.NewClaudeTools(os.TempDir(), cfg.WorkspacePath())
 	for _, t := range customTools {
 		agentLoop.RegisterTool(t)
 	}
 	slog.Info("claude code delegation tools registered", "tools", []string{"claude_analyze_image", "web_search", "web_fetch"})
+
+	// 7.7. CronService + CronTool 初期化
+	cronStorePath := filepath.Join(cfg.WorkspacePath(), "cron", "jobs.json")
+	cronService := cron.NewCronService(cronStorePath, nil)
+
+	execTimeout := time.Duration(cfg.Tools.Cron.ExecTimeoutMinutes) * time.Minute
+	cronTool, err := tools.NewCronTool(
+		cronService, agentLoop, agentBus,
+		cfg.WorkspacePath(),
+		cfg.Agents.Defaults.RestrictToWorkspace,
+		execTimeout,
+		cfg,
+	)
+	if err != nil {
+		return fmt.Errorf("cron tool creation error: %w", err)
+	}
+	agentLoop.RegisterTool(cronTool)
+
+	cronService.SetOnJob(func(job *cron.CronJob) (string, error) {
+		result := cronTool.ExecuteJob(context.Background(), job)
+		return result, nil
+	})
+
+	if err := cronService.Start(); err != nil {
+		slog.Error("failed to start cron service", "error", err)
+	} else {
+		slog.Info("cron service started", "store", cronStorePath)
+	}
 
 	// 8. 全チャンネル起動
 	if err := channelManager.StartAll(ctx); err != nil {
@@ -207,6 +236,7 @@ func cmdServe() error {
 
 	slog.Info("shutting down")
 	cancel()
+	cronService.Stop()
 	idleMonitor.Stop()
 	consoleServer.Stop(context.Background())
 	healthServer.Stop(context.Background())
@@ -295,12 +325,14 @@ func main() {
 		case "hindsight":
 			err = cmdHindsight(os.Args[2:])
 		default:
+			slog.Error("unknown command", "command", os.Args[1])
 			fmt.Fprintf(os.Stderr, "Unknown command: %s\nUsage: picapica-nest [serve|hindsight]\n", os.Args[1])
 			os.Exit(1)
 		}
 	}
 
 	if err != nil {
+		slog.Error("fatal error", "error", err)
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

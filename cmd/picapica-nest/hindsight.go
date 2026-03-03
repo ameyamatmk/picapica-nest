@@ -55,7 +55,9 @@ func cmdHindsightDaily(args []string) error {
 	} else {
 		targetDate, err = time.Parse("2006-01-02", *dateStr)
 		if err != nil {
-			return fmt.Errorf("invalid date format: %w", err)
+			err = fmt.Errorf("invalid date format: %w", err)
+			slog.Error("hindsight daily failed", "component", "hindsight", "error", err)
+			return err
 		}
 	}
 
@@ -69,7 +71,11 @@ func cmdHindsightDaily(args []string) error {
 	}
 
 	slog.Info("running daily hindsight", "component", "hindsight", "date", targetDate.Format("2006-01-02"))
-	return hindsight.RunDaily(context.Background(), params)
+	if err := hindsight.RunDaily(context.Background(), params); err != nil {
+		slog.Error("hindsight daily failed", "component", "hindsight", "error", err)
+		return err
+	}
+	return nil
 }
 
 func cmdHindsightWeekly(args []string) error {
@@ -104,7 +110,9 @@ func cmdHindsightWeekly(args []string) error {
 	} else {
 		_, err := fmt.Sscanf(*weekStr, "%d-W%d", &year, &week)
 		if err != nil {
-			return fmt.Errorf("invalid week format (expected YYYY-WNN): %w", err)
+			err = fmt.Errorf("invalid week format (expected YYYY-WNN): %w", err)
+			slog.Error("hindsight weekly failed", "component", "hindsight", "error", err)
+			return err
 		}
 	}
 
@@ -118,7 +126,11 @@ func cmdHindsightWeekly(args []string) error {
 	}
 
 	slog.Info("running weekly hindsight", "component", "hindsight", "week", fmt.Sprintf("%d-W%02d", year, week))
-	return hindsight.RunWeekly(context.Background(), params)
+	if err := hindsight.RunWeekly(context.Background(), params); err != nil {
+		slog.Error("hindsight weekly failed", "component", "hindsight", "error", err)
+		return err
+	}
+	return nil
 }
 
 func cmdHindsightMonthly(args []string) error {
@@ -149,10 +161,14 @@ func cmdHindsightMonthly(args []string) error {
 	} else {
 		_, err := fmt.Sscanf(*monthStr, "%d-%d", &year, &month)
 		if err != nil {
-			return fmt.Errorf("invalid month format (expected YYYY-MM): %w", err)
+			err = fmt.Errorf("invalid month format (expected YYYY-MM): %w", err)
+			slog.Error("hindsight monthly failed", "component", "hindsight", "error", err)
+			return err
 		}
 		if month < 1 || month > 12 {
-			return fmt.Errorf("invalid month: %d (must be 1-12)", month)
+			err := fmt.Errorf("invalid month: %d (must be 1-12)", month)
+			slog.Error("hindsight monthly failed", "component", "hindsight", "error", err)
+			return err
 		}
 	}
 
@@ -167,7 +183,11 @@ func cmdHindsightMonthly(args []string) error {
 	}
 
 	slog.Info("running monthly hindsight", "component", "hindsight", "month", fmt.Sprintf("%d-%02d", year, month))
-	return hindsight.RunMonthly(context.Background(), params)
+	if err := hindsight.RunMonthly(context.Background(), params); err != nil {
+		slog.Error("hindsight monthly failed", "component", "hindsight", "error", err)
+		return err
+	}
+	return nil
 }
 
 // buildLabelFn は ChatID からチャンネル名を解決する関数を返す。

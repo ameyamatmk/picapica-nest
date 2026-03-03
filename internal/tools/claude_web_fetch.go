@@ -10,11 +10,13 @@ import (
 
 // ClaudeWebFetchTool は指定 URL のページ内容を Claude Code CLI で取得・要約するツール。
 // Name() は "web_fetch" を返し、PicoClaw 組み込みの web_fetch を上書きする。
-type ClaudeWebFetchTool struct{}
+type ClaudeWebFetchTool struct {
+	soulPrompt string
+}
 
 // NewClaudeWebFetchTool は ClaudeWebFetchTool を作成する。
-func NewClaudeWebFetchTool() *ClaudeWebFetchTool {
-	return &ClaudeWebFetchTool{}
+func NewClaudeWebFetchTool(soulPrompt string) *ClaudeWebFetchTool {
+	return &ClaudeWebFetchTool{soulPrompt: soulPrompt}
 }
 
 func (t *ClaudeWebFetchTool) Name() string { return "web_fetch" }
@@ -49,9 +51,13 @@ func (t *ClaudeWebFetchTool) Execute(ctx context.Context, args map[string]any) *
 	question, _ := args["question"].(string)
 
 	prompt := buildFetchPrompt(url, question)
-	result, err := claudecode.Run(ctx, prompt, "",
+	opts := []claudecode.Option{
 		claudecode.WithAllowedTools("WebFetch", "WebSearch"),
-	)
+	}
+	if t.soulPrompt != "" {
+		opts = append(opts, claudecode.WithAppendSystemPrompt(t.soulPrompt))
+	}
+	result, err := claudecode.Run(ctx, prompt, "", opts...)
 	if err != nil {
 		return tools.ErrorResult("ページの取得に失敗しました: " + err.Error())
 	}

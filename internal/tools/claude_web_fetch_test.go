@@ -6,7 +6,7 @@ import (
 )
 
 func TestClaudeWebFetchTool_Interface(t *testing.T) {
-	tool := NewClaudeWebFetchTool()
+	tool := NewClaudeWebFetchTool("")
 
 	// Given: ツール名と説明が設定されている
 	// Then: 正しい名前と説明を返す
@@ -20,7 +20,7 @@ func TestClaudeWebFetchTool_Interface(t *testing.T) {
 }
 
 func TestClaudeWebFetchTool_Parameters(t *testing.T) {
-	tool := NewClaudeWebFetchTool()
+	tool := NewClaudeWebFetchTool("")
 
 	// Given: パラメータ定義を取得
 	params := tool.Parameters()
@@ -48,7 +48,7 @@ func TestClaudeWebFetchTool_Parameters(t *testing.T) {
 }
 
 func TestClaudeWebFetchTool_MissingURL(t *testing.T) {
-	tool := NewClaudeWebFetchTool()
+	tool := NewClaudeWebFetchTool("")
 
 	// Given: url が空
 	args := map[string]any{}
