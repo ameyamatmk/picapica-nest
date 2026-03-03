@@ -1,7 +1,7 @@
 github.com/adhocore/gronx v1.19.6 h1:5KNVcoR9ACgL9HhEqCm5QXsab/gI4QDIybTAWcXDKDc=
 github.com/adhocore/gronx v1.19.6/go.mod h1:7oUY1WAU8rEJWmAxXR2DN0JaO4gi9khSgKjiRypqteg=
-github.com/ameyamatmk/picoclaw-nest v0.2.0-nest.2 h1:qJsh9obyh5y4OdLni+2PE7NlkyXg2eRa51V6tauTYCU=
-github.com/ameyamatmk/picoclaw-nest v0.2.0-nest.2/go.mod h1:wxkmef0T/otqBdhE0+PT3KMQtn9QFldQCUrr1VhUSAA=
+github.com/ameyamatmk/picoclaw-nest v0.2.0-nest.3 h1:3t4uvYtSAj8Brm86l8vfGC4XGTM4tPNnDpKVFL/haXU=
+github.com/ameyamatmk/picoclaw-nest v0.2.0-nest.3/go.mod h1:wxkmef0T/otqBdhE0+PT3KMQtn9QFldQCUrr1VhUSAA=
 github.com/anthropics/anthropic-sdk-go v1.22.1 h1:xbsc3vJKCX/ELDZSpTNfz9wCgrFsamwFewPb1iI0Xh0=
 github.com/anthropics/anthropic-sdk-go v1.22.1/go.mod h1:WTz31rIUHUHqai2UslPpw5CwXrQP3geYBioRV4WOLvE=
 github.com/bwmarrin/discordgo v0.29.0 h1:FmWeXFaKUwrcL3Cx65c20bTRW+vOb6k8AnaP+EgjDno=
