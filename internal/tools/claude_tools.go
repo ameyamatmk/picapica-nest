@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sipeed/picoclaw/pkg/bus"
 	"github.com/sipeed/picoclaw/pkg/tools"
 )
 
@@ -13,13 +14,14 @@ import (
 // 動的エージェント作成時にも同じツールセットを登録するために使用する。
 // workspacePath が指定されている場合、SOUL.md を読み込んで
 // --append-system-prompt に渡すことで口調を統一する。
-func NewClaudeTools(tempDir string, workspacePath string) []tools.Tool {
+// agentBus が非 nil の場合、ストリーミング進捗通知が有効になる。
+func NewClaudeTools(tempDir string, workspacePath string, agentBus *bus.MessageBus) []tools.Tool {
 	soulPrompt := loadSOUL(workspacePath)
 
 	return []tools.Tool{
-		NewClaudeAnalyzeImageTool(tempDir, soulPrompt),
-		NewClaudeWebSearchTool(soulPrompt),
-		NewClaudeWebFetchTool(soulPrompt),
+		NewClaudeAnalyzeImageTool(tempDir, soulPrompt, agentBus),
+		NewClaudeWebSearchTool(soulPrompt, agentBus),
+		NewClaudeWebFetchTool(soulPrompt, agentBus),
 	}
 }
 
